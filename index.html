@@ -1,201 +1,828 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.6">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px 'Helvetica Neue'; color: #daf3ea; -webkit-text-stroke: #daf3ea}
-    p.p3 {margin: 0.0px 0.0px 15.0px 0.0px; font: 11.0px 'Helvetica Neue'; color: #1e8f62; -webkit-text-stroke: #1e8f62}
-    p.p5 {margin: 0.0px 0.0px 24.0px 0.0px; font: 12.6px 'Helvetica Neue'; color: #ffffff; color: rgba(255, 255, 255, 0.7); -webkit-text-stroke: rgba(255, 255, 255, 0.7)}
-    p.p6 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #ffffff; color: rgba(255, 255, 255, 0.82); -webkit-text-stroke: rgba(255, 255, 255, 0.82)}
-    p.p7 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px 'Helvetica Neue'; color: #ffffff; -webkit-text-stroke: #ffffff; background-color: #1e8f62}
-    p.p8 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px 'Helvetica Neue'; color: #ffffff; color: rgba(255, 255, 255, 0.8); -webkit-text-stroke: rgba(255, 255, 255, 0.8)}
-    p.p9 {margin: 0.0px 0.0px 0.0px 0.0px; font: 24.0px 'Helvetica Neue'; color: #daf3ea; -webkit-text-stroke: #daf3ea}
-    p.p10 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #ffffff; color: rgba(255, 255, 255, 0.55); -webkit-text-stroke: rgba(255, 255, 255, 0.55)}
-    p.p11 {margin: 0.0px 0.0px 7.2px 0.0px; font: 10.0px 'Helvetica Neue'; color: #1e8f62; -webkit-text-stroke: #1e8f62}
-    p.p13 {margin: 0.0px 0.0px 0.0px 0.0px; font: 10.0px 'Helvetica Neue'; color: #1e8f62; -webkit-text-stroke: #1e8f62}
-    p.p15 {margin: 0.0px 0.0px 9.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #4d5865; -webkit-text-stroke: #4d5865}
-    p.p16 {margin: 0.0px 0.0px 0.0px 0.0px; font: 10.8px 'Helvetica Neue'; color: #2c353f; -webkit-text-stroke: #2c353f}
-    p.p17 {margin: 0.0px 0.0px 0.0px 0.0px; font: 10.2px 'Helvetica Neue'; color: #4d5865; -webkit-text-stroke: #4d5865}
-    p.p18 {margin: 0.0px 0.0px 4.8px 0.0px; font: 11.4px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b}
-    p.p19 {margin: 0.0px 0.0px 0.0px 0.0px; font: 16.0px 'Helvetica Neue'; color: #141414; -webkit-text-stroke: #141414; min-height: 18.0px}
-    p.p20 {margin: 0.0px 0.0px 0.0px 0.0px; font: 10.2px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b}
-    p.p21 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px 'Helvetica Neue'; color: #4d5865; -webkit-text-stroke: #4d5865}
-    p.p22 {margin: 0.0px 0.0px 3.0px 0.0px; font: 11.0px 'Helvetica Neue'; color: #4d5865; -webkit-text-stroke: #4d5865}
-    p.p23 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b}
-    p.p24 {margin: 0.0px 0.0px 4.8px 0.0px; font: 10.6px 'Helvetica Neue'; color: #1e8f62; -webkit-text-stroke: #1e8f62}
-    p.p25 {margin: 0.0px 0.0px 0.0px 0.0px; font: 10.6px 'Helvetica Neue'; color: #4d5865; -webkit-text-stroke: #4d5865}
-    p.p27 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.4px 'Helvetica Neue'; color: #ffffff; color: rgba(255, 255, 255, 0.65); -webkit-text-stroke: rgba(255, 255, 255, 0.65)}
-    p.p28 {margin: 0.0px 0.0px 0.0px 0.0px; font: 10.8px 'Helvetica Neue'; color: #ffffff; color: rgba(255, 255, 255, 0.8); -webkit-text-stroke: rgba(255, 255, 255, 0.8)}
-    p.p29 {margin: 0.0px 0.0px 0.0px 0.0px; font: 10.8px 'Helvetica Neue'; color: #ffffff; color: rgba(255, 255, 255, 0.6); -webkit-text-stroke: rgba(255, 255, 255, 0.6)}
-    p.p30 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 11.0px 'Helvetica Neue'; color: #ffffff; color: rgba(255, 255, 255, 0.4); -webkit-text-stroke: rgba(255, 255, 255, 0.4); background-color: #0b2239}
-    li.li2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Neue'; color: #ffffff; color: rgba(255, 255, 255, 0.65); -webkit-text-stroke: rgba(255, 255, 255, 0.65)}
-    li.li17 {margin: 0.0px 0.0px 0.0px 0.0px; font: 10.2px 'Helvetica Neue'; color: #4d5865; -webkit-text-stroke: #4d5865}
-    span.s1 {font-kerning: none; background-color: #0d2c4b}
-    span.s2 {background-color: #0d2c4b; -webkit-text-stroke: 0px #000000}
-    span.s3 {font-kerning: none}
-    span.s4 {font: 13.0px 'Helvetica Neue'; font-kerning: none; color: #ffffff; -webkit-text-stroke: 0px #ffffff}
-    span.s5 {font-kerning: none; background-color: rgba(255, 255, 255, 0.071)}
-    span.s6 {font-kerning: none; background-color: #daf3ea}
-    span.s7 {font-kerning: none; background-color: #ffffff}
-    span.s8 {background-color: #ffffff; -webkit-text-stroke: 0px #000000}
-    span.s9 {font-kerning: none; background-color: #f5f1eb}
-    span.s10 {font: 10.8px 'Helvetica Neue'; font-kerning: none; color: rgba(255, 255, 255, 0.8); -webkit-text-stroke: 0px rgba(255, 255, 255, 0.8)}
-    ul.ul1 {list-style-type: none}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koto Qalo — Digital Systems Architect & Consultant</title>
+  <meta name="description" content="Digital Systems Architect and Consultant with 10+ years designing, deploying, and supporting digital platforms across government, regional, and low-resource environments." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ocean:      #0d3b5e;
+      --ocean-dark: #081f33;
+      --reef:       #1d9e75;
+      --reef-light: #2ec48f;
+      --tide:       #e1f5ee;
+      --sand:       #f7f4ef;
+      --ink:        #1a1a1a;
+      --mist:       #5f6b78;
+      --border:     #d6e4ec;
+      --accent:     #e8a020;
+      --mono:       'IBM Plex Mono', monospace;
+      --sans:       'IBM Plex Sans', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans); font-weight: 300;
+      color: var(--ink); background: #fff;
+      font-size: 16px; line-height: 1.7;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--ocean-dark);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2.5rem; height: 54px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .nav-brand { font-family: var(--mono); font-size: 13px; color: var(--tide); letter-spacing: 0.08em; }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.55); transition: color 0.2s; }
+    .nav-links a:hover { color: var(--reef-light); }
+
+    /* HERO */
+    .hero-wrapper { background: var(--ocean); border-bottom: 3px solid var(--reef); }
+    .hero {
+      max-width: 1120px; margin: 0 auto;
+      padding: 5.5rem 2.5rem 5rem;
+      display: grid; grid-template-columns: 1fr 310px; gap: 5rem; align-items: start;
+    }
+    .hero-eyebrow {
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--reef-light); margin-bottom: 1rem;
+    }
+    .hero-name {
+      font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 600;
+      line-height: 1.05; letter-spacing: -0.025em; color: white; margin-bottom: 0.5rem;
+    }
+    .hero-title {
+      font-size: 1rem; font-weight: 300; color: rgba(255,255,255,0.65);
+      margin-bottom: 1.75rem; line-height: 1.6;
+    }
+    .hero-bio {
+      font-size: 1rem; font-weight: 300; color: rgba(255,255,255,0.82);
+      line-height: 1.8; max-width: 560px;
+    }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.75rem; }
+    .hero-tag {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--reef-light);
+      border: 1px solid rgba(46,196,143,0.3); border-radius: 3px; padding: 3px 10px;
+    }
+    .hero-cta { display: flex; gap: 1rem; margin-top: 2.25rem; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--reef); color: white; padding: 0.7rem 1.6rem;
+      border-radius: 5px; font-size: 13px; font-weight: 400;
+      letter-spacing: 0.04em; transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #16866a; }
+    .btn-ghost {
+      border: 1px solid rgba(255,255,255,0.28); color: rgba(255,255,255,0.78);
+      padding: 0.7rem 1.6rem; border-radius: 5px; font-size: 13px;
+      font-weight: 400; letter-spacing: 0.04em; transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { border-color: white; color: white; }
+
+    .hero-stats { display: flex; flex-direction: column; gap: 0.85rem; }
+    .stat-card {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 1rem 1.2rem;
+    }
+    .stat-number { font-family: var(--mono); font-size: 1.85rem; font-weight: 500; color: var(--tide); line-height: 1; margin-bottom: 0.2rem; }
+    .stat-label { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.06em; }
+
+    /* SECTION */
+    .section-wrap { }
+    .section-wrap.alt { background: var(--sand); }
+    .section { max-width: 1120px; margin: 0 auto; padding: 5rem 2.5rem; }
+    .section-header { margin-bottom: 3rem; }
+    .section-eyebrow {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--reef); margin-bottom: 0.5rem;
+    }
+    .section-title { font-size: 1.85rem; font-weight: 600; color: var(--ocean); letter-spacing: -0.015em; line-height: 1.2; }
+    .section-lead { margin-top: 0.6rem; font-size: 1rem; color: var(--mist); max-width: 620px; line-height: 1.7; }
+
+    /* VALUE STRIP */
+    .value-strip {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 1rem;
+    }
+    .value-item { padding: 1.75rem 1.5rem; border-right: 1px solid var(--border); background: white; }
+    .value-item:last-child { border-right: none; }
+    .value-icon { font-size: 1.4rem; margin-bottom: 0.6rem; }
+    .value-title { font-size: 0.92rem; font-weight: 600; color: var(--ocean); margin-bottom: 0.3rem; }
+    .value-desc { font-size: 0.82rem; color: var(--mist); line-height: 1.6; }
+
+    /* PROJECTS */
+    .projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+    .project-card {
+      border: 1px solid var(--border); border-radius: 10px; padding: 1.6rem;
+      background: white; position: relative; overflow: hidden;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .project-card:hover { box-shadow: 0 6px 24px rgba(13,59,94,0.1); transform: translateY(-2px); }
+    .project-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--reef); }
+    .project-card.amber-top::before { background: var(--accent); }
+    .project-card.blue-top::before { background: #1a3a8f; }
+    .project-tag {
+      display: inline-block; font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--reef); background: var(--tide); border-radius: 3px; padding: 2px 8px; margin-bottom: 0.75rem;
+    }
+    .project-tag.amber { color: #92600a; background: #fff3d6; }
+    .project-tag.blue { color: #1a3a8f; background: #e8eef9; }
+    .project-name { font-size: 1.05rem; font-weight: 600; color: var(--ocean); margin-bottom: 0.3rem; }
+    .project-org { font-size: 11px; color: var(--mist); font-family: var(--mono); margin-bottom: 0.75rem; letter-spacing: 0.04em; }
+    .project-desc { font-size: 0.88rem; color: #3a4550; line-height: 1.68; }
+    .project-outcomes { margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border); list-style: none; }
+    .project-outcomes li { font-size: 0.82rem; color: var(--mist); padding: 0.2rem 0 0.2rem 1.1rem; position: relative; }
+    .project-outcomes li::before { content: '→'; position: absolute; left: 0; color: var(--reef); font-size: 11px; }
+
+    /* EXPERTISE */
+    .expertise-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
+    .expertise-item {
+      padding: 1.4rem 1.25rem; background: white;
+      border: 1px solid var(--border); border-left: 3px solid var(--reef); border-radius: 0 8px 8px 0;
+    }
+    .expertise-name { font-weight: 600; font-size: 0.95rem; color: var(--ocean); margin-bottom: 0.4rem; }
+    .expertise-desc { font-size: 0.85rem; color: var(--mist); line-height: 1.6; }
+    .expertise-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.75rem; }
+    .etag {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--ocean); background: var(--sand); border: 1px solid var(--border);
+      border-radius: 2px; padding: 1px 7px;
+    }
+
+    /* GLOBAL MARKETS */
+    .markets-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; }
+    .market-card { border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.1rem; background: white; text-align: center; }
+    .market-flag { font-size: 1.8rem; margin-bottom: 0.4rem; }
+    .market-country { font-size: 0.85rem; font-weight: 600; color: var(--ocean); }
+    .market-role { font-size: 0.78rem; color: var(--mist); margin-top: 0.15rem; line-height: 1.45; }
+
+    /* CREDENTIALS */
+    .credentials-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+    .credential-badge {
+      display: flex; align-items: center; gap: 0.85rem; background: white;
+      border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1.2rem; min-width: 240px;
+    }
+    .badge-icon {
+      width: 38px; height: 38px; border-radius: 50%; background: var(--tide);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .badge-icon svg { width: 18px; height: 18px; stroke: var(--reef); fill: none; stroke-width: 2; }
+    .badge-label { font-size: 0.85rem; font-weight: 600; color: var(--ocean); }
+    .badge-sub { font-size: 11px; color: var(--mist); margin-top: 1px; }
+
+    /* TIMELINE */
+    .timeline { position: relative; padding-left: 2.25rem; }
+    .timeline::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 0; width: 1px; background: var(--border); }
+    .timeline-item { position: relative; padding-bottom: 2.25rem; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -2.625rem; top: 7px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--reef); border: 2px solid white; box-shadow: 0 0 0 1px var(--reef);
+    }
+    .timeline-date { font-family: var(--mono); font-size: 11px; color: var(--mist); letter-spacing: 0.06em; margin-bottom: 0.3rem; }
+    .timeline-role { font-size: 1rem; font-weight: 600; color: var(--ocean); }
+    .timeline-org { font-size: 0.88rem; color: var(--reef); margin-bottom: 0.5rem; }
+    .timeline-points { list-style: none; margin-top: 0.5rem; }
+    .timeline-points li { font-size: 0.85rem; color: var(--mist); padding: 0.2rem 0 0.2rem 1.1rem; position: relative; }
+    .timeline-points li::before { content: '·'; position: absolute; left: 0; color: var(--reef); font-weight: 600; }
+
+    /* CONTACT */
+    .contact-wrapper { background: var(--ocean-dark); }
+    .contact-inner {
+      max-width: 1120px; margin: 0 auto; padding: 5rem 2.5rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start;
+    }
+    .contact-heading { font-size: 2.1rem; font-weight: 600; line-height: 1.15; color: white; margin-bottom: 0.85rem; }
+    .contact-sub { font-size: 0.95rem; font-weight: 300; color: rgba(255,255,255,0.6); line-height: 1.75; }
+    .contact-links { display: flex; flex-direction: column; gap: 1.1rem; }
+    .contact-item { }
+    .contact-item-label {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--reef-light); display: block; margin-bottom: 0.2rem;
+    }
+    .contact-item-value { font-size: 0.9rem; color: rgba(255,255,255,0.78); transition: color 0.2s; }
+    a.contact-item-value:hover { color: var(--tide); }
+
+    footer { background: #050f18; color: rgba(255,255,255,0.3); text-align: center; padding: 1.25rem; font-size: 11px; font-family: var(--mono); letter-spacing: 0.08em; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; gap: 2.5rem; padding: 3.5rem 1.5rem 3rem; }
+      .hero-stats { flex-direction: row; flex-wrap: wrap; }
+      .stat-card { flex: 1; min-width: 130px; }
+      .contact-inner { grid-template-columns: 1fr; padding: 3rem 1.5rem; gap: 2.5rem; }
+      .section { padding: 3.5rem 1.5rem; }
+      .nav-links { display: none; }
+    }
   </style>
 </head>
 <body>
-<p class="p1"><span class="s1">KQ / Dreamers-Media Pacific</span></p>
-<ul class="ul1">
-  <li class="li2"><span class="s2"></span><span class="s1">PROJECTS</span></li>
-  <li class="li2"><span class="s2"></span><span class="s1">EXPERTISE</span></li>
-  <li class="li2"><span class="s2"></span><span class="s1">CREDENTIALS</span></li>
-  <li class="li2"><span class="s2"></span><span class="s1">CAREER</span></li>
-  <li class="li2"><span class="s2"></span><span class="s1">CONTACT</span></li>
-</ul>
-<p class="p3"><span class="s1">PACIFIC CIVIC TECHNOLOGY &amp; DIGITAL GOVERNANCE</span></p>
-<h1 style="margin: 0.0px 0.0px 6.0px 0.0px; font: 40.0px 'Helvetica Neue'; color: #ffffff; -webkit-text-stroke: #ffffff"><span class="s1">Koto Qalo</span></h1>
-<p class="p5"><span class="s1">Founder &amp; Principal Consultant, Dreamers-Media Pacific</span><span class="s3"><br>
-</span><span class="s1">Technical Adviser, Integrate Pasifika — SPC/GEM</span></p>
-<p class="p6"><span class="s1">I build digital systems at the intersection of open data, indigenous knowledge, disaster resilience, and Pacific governance. My work spans UN agencies, Pacific Island governments, and civic technology organisations — from deploying ASYCUDAWorld across five Pacific nations to co-designing the region's first community-led open data commons.</span></p>
-<p class="p7"><span class="s3"><a href="https://drive.google.com/file/d/YOUR_CV_FILE_ID/view">Download CV (PDF)<span class="s4"></span></a></span></p>
-<p class="p8"><span class="s1">Get in touch</span></p>
-<p class="p9"><span class="s5">10+</span></p>
-<p class="p10"><span class="s5">Years Pacific digital transformation</span></p>
-<p class="p9"><span class="s5">6+</span></p>
-<p class="p10"><span class="s5">Pacific Island Countries served</span></p>
-<p class="p9"><span class="s5">3</span></p>
-<p class="p10"><span class="s5">UN / multilateral agency engagements</span></p>
-<p class="p9"><span class="s5">CISM</span></p>
-<p class="p10"><span class="s5">Certified Information Security Manager, 2024</span></p>
-<p class="p11"><span class="s3">SELECTED PROJECTS</span></p>
-<h2 style="margin: 0.0px 0.0px 30.0px 0.0px; font: 21.0px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s3">Work that moves systems</span></h2>
-<p class="p13"><span class="s6">OPEN DATA / AI</span></p>
-<h3 style="margin: 0.0px 0.0px 4.8px 0.0px; font: 12.6px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s7">Integrate Pasifika</span></h3>
-<p class="p15"><span class="s7">SPC / GEM Division — Disaster &amp; Community Resilience Programme</span></p>
-<p class="p16"><span class="s7">Technical Adviser on the Pacific's first community-driven open data and civic technology commons. Designing data architecture, indigenous knowledge protocols, and interoperability standards for Pacific Island Countries.</span></p>
-<ul class="ul1">
-  <li class="li17"><span class="s8"></span><span class="s7">Digital commons framework for climate and resilience data</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Presented at UN Open Source Week, New York, 2026</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Anchors Pacific data sovereignty policy work at SPC</span></li>
-</ul>
-<p class="p13"><span class="s6">CUSTOMS / TRADE TECH</span></p>
-<h3 style="margin: 0.0px 0.0px 4.8px 0.0px; font: 12.6px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s7">ASYCUDAWorld Pacific Deployment</span></h3>
-<p class="p15"><span class="s7">UNCTAD — Automated System for Customs Data</span></p>
-<p class="p16"><span class="s7">Led multi-country technical rollout of UNCTAD's flagship customs automation platform across Pacific Island nations. Managed government stakeholder integration, training, and live production deployments.</span></p>
-<ul class="ul1">
-  <li class="li17"><span class="s8"></span><span class="s7">Live deployments across 5+ Pacific Island Countries</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Customs revenue data integrity improvements</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Government systems integration and capacity building</span></li>
-</ul>
-<p class="p13"><span class="s6">EDTECH / RESILIENCE</span></p>
-<h3 style="margin: 0.0px 0.0px 4.8px 0.0px; font: 12.6px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s7">BERO Learning Platform</span></h3>
-<p class="p15"><span class="s7">Catalpa International</span></p>
-<p class="p16"><span class="s7">Civic technology platform supporting community-based education and resilience in the Pacific. Contributed to technical architecture, data pipelines, and local capacity uplift.</span></p>
-<ul class="ul1">
-  <li class="li17"><span class="s8"></span><span class="s7">Pacific-contextualised digital learning infrastructure</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Community resilience data collection and reporting</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Open-source architecture for Pacific deployment contexts</span></li>
-</ul>
-<p class="p13"><span class="s6">CLIMATE DATA / SPC</span></p>
-<h3 style="margin: 0.0px 0.0px 4.8px 0.0px; font: 12.6px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s7">COSPPac TKDB v5 Upgrade</span></h3>
-<p class="p15"><span class="s7">SPREP — Pacific Climate Change Centre</span></p>
-<p class="p16"><span class="s7">Technical proposal lead for the upgrade of SPREP's Traditional Knowledge Database supporting Pacific climate adaptation. Full technical architecture, data governance, and delivery planning.</span></p>
-<ul class="ul1">
-  <li class="li17"><span class="s8"></span><span class="s7">Indigenous knowledge systems and modern data infrastructure</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Pacific climate adaptation evidence base</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Tender submitted June 2026</span></li>
-</ul>
-<p class="p13"><span class="s6">DIGITAL TOURISM</span></p>
-<h3 style="margin: 0.0px 0.0px 4.8px 0.0px; font: 12.6px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s7">Tourism Fiji Digital Systems</span></h3>
-<p class="p15"><span class="s7">Tourism Fiji</span></p>
-<p class="p16"><span class="s7">Led digital transformation initiatives for Fiji's national tourism authority, including CRM, digital marketing infrastructure, and data analytics platforms.</span></p>
-<ul class="ul1">
-  <li class="li17"><span class="s8"></span><span class="s7">CRM and visitor data platform implementation</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Digital campaign analytics and reporting systems</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Cross-government data integration</span></li>
-</ul>
-<p class="p13"><span class="s6">EDTECH</span></p>
-<h3 style="margin: 0.0px 0.0px 4.8px 0.0px; font: 12.6px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s7">Pacific Kids Learning</span></h3>
-<p class="p15"><span class="s7">Dreamers-Media Pacific</span></p>
-<p class="p16"><span class="s7">Pacific-contextualised early childhood digital learning platform. Designed to serve Pacific Island communities with culturally grounded content and offline-first architecture for low-connectivity environments.</span></p>
-<ul class="ul1">
-  <li class="li17"><span class="s8"></span><span class="s7">Offline-first mobile architecture for Pacific schools</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Culturally grounded Pacific content framework</span></li>
-  <li class="li17"><span class="s8"></span><span class="s7">Dreamers-Media Pacific flagship product</span></li>
-</ul>
-<p class="p11"><span class="s9">DOMAIN EXPERTISE</span></p>
-<h2 style="margin: 0.0px 0.0px 30.0px 0.0px; font: 21.0px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s9">Where I work best</span></h2>
-<p class="p18"><span class="s7">Pacific Civic Technology</span></p>
-<p class="p17"><span class="s7">Designing digital systems that serve Pacific Island governments, communities, and multilateral organisations — with genuine Pacific ownership at the centre.</span></p>
-<p class="p18"><span class="s7">Open Data &amp; Data Governance</span></p>
-<p class="p17"><span class="s7">Open data commons architecture, indigenous data sovereignty frameworks, FAIR data principles applied to Pacific development contexts.</span></p>
-<p class="p18"><span class="s7">Digital Governance &amp; Policy</span></p>
-<p class="p17"><span class="s7">National digital strategy development, ICT policy advisory, digital transformation programme management for Pacific governments.</span></p>
-<p class="p18"><span class="s7">Disaster &amp; Climate Resilience Systems</span></p>
-<p class="p17"><span class="s7">Community resilience platforms, climate data infrastructure, early warning systems — experience within SPC's Disaster &amp; Community Resilience Programme.</span></p>
-<p class="p18"><span class="s7">Information Security</span></p>
-<p class="p17"><span class="s7">CISM-certified. ISMS design, ISO 27001 advisory, risk frameworks for Pacific government and multilateral contexts. Current FFA ISMS review engagement.</span></p>
-<p class="p18"><span class="s7">Senior Software Engineering</span></p>
-<p class="p17"><span class="s7">Full-stack development, enterprise platform deployment, government systems integration. M.S. Software Engineering, University of Melbourne (2025).</span></p>
-<p class="p11"><span class="s3">CREDENTIALS</span></p>
-<h2 style="margin: 0.0px 0.0px 30.0px 0.0px; font: 21.0px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s3">Education &amp; certifications</span></h2>
-<p class="p19"><span class="s3"></span><br></p>
-<p class="p20"><span class="s7">Master of Software Engineering</span></p>
-<p class="p21"><span class="s7">University of Melbourne — 2025</span></p>
-<p class="p19"><span class="s3"></span><br></p>
-<p class="p20"><span class="s7">M.Sc. Project Management</span></p>
-<p class="p21"><span class="s7">Curtin University</span></p>
-<p class="p19"><span class="s3"></span><br></p>
-<p class="p20"><span class="s7">CISM — Certified Information Security Manager</span></p>
-<p class="p21"><span class="s7">ISACA — 2024</span></p>
-<p class="p19"><span class="s3"></span><br></p>
-<p class="p20"><span class="s7">ABN 72417871405</span></p>
-<p class="p21"><span class="s7">Dreamers-Media Pacific Pty Ltd — Victoria, Australia</span></p>
-<p class="p19"><span class="s3"></span><br></p>
-<p class="p20"><span class="s7">UN Open Source Week Speaker</span></p>
-<p class="p21"><span class="s7">New York — June 2026</span></p>
-<p class="p19"><span class="s3"></span><br></p>
-<p class="p20"><span class="s7">U.S. Department of State Presenter</span></p>
-<p class="p21"><span class="s7">Pacific digital governance representation</span></p>
-<p class="p11"><span class="s9">CAREER</span></p>
-<h2 style="margin: 0.0px 0.0px 30.0px 0.0px; font: 21.0px 'Helvetica Neue'; color: #0d2c4b; -webkit-text-stroke: #0d2c4b"><span class="s9">Professional history</span></h2>
-<p class="p22"><span class="s9">2023 – Present</span></p>
-<p class="p23"><span class="s9">Founder &amp; Principal Consultant</span></p>
-<p class="p24"><span class="s9">Dreamers-Media Pacific — Victoria, Australia</span></p>
-<p class="p25"><span class="s9">Pacific-owned civic technology and digital systems consultancy. Tendering, delivering, and managing digital governance, open data, and resilience programmes across Pacific Island Countries.</span></p>
-<p class="p22"><span class="s9">2023 – Present</span></p>
-<p class="p23"><span class="s9">Technical Adviser — Integrate Pasifika</span></p>
-<p class="p24"><span class="s9">SPC / GEM Division — Disaster &amp; Community Resilience Programme</span></p>
-<p class="p25"><span class="s9">Technical advisory on the Pacific's open data commons and civic technology initiative. Architecture, policy, and community engagement for digital sovereignty.</span></p>
-<p class="p22"><span class="s9">Prior</span></p>
-<p class="p23"><span class="s9">Senior Software Engineer / Digital Systems Lead</span></p>
-<p class="p24"><span class="s9">UNCTAD — ASYCUDAWorld Programme</span></p>
-<p class="p25"><span class="s9">Multi-country technical deployment of the ASYCUDAWorld customs automation platform across Pacific Island nations. Government stakeholder management, live production rollout, and capacity building.</span></p>
-<p class="p22"><span class="s9">Prior</span></p>
-<p class="p23"><span class="s9">Digital Transformation Lead</span></p>
-<p class="p24"><span class="s9">Tourism Fiji</span></p>
-<p class="p25"><span class="s9">Led digital strategy, CRM, analytics, and marketing technology implementation for Fiji's national tourism authority.</span></p>
-<p class="p22"><span class="s9">Prior</span></p>
-<p class="p23"><span class="s9">Senior Technology Roles</span></p>
-<p class="p24"><span class="s9">Department of Education and Training Victoria</span></p>
-<p class="p25"><span class="s9">Enterprise systems and digital transformation in one of Australia's largest state government departments.</span></p>
-<h2 style="margin: 0.0px 0.0px 9.0px 0.0px; font: 24.0px 'Helvetica Neue'; color: #ffffff; -webkit-text-stroke: #ffffff"><span class="s1">Open to opportunities</span><span class="s3"><br>
-</span><span class="s1">in NYC and San Francisco</span></h2>
-<p class="p27"><span class="s1">I am currently in New York and actively exploring senior roles at the intersection of civic technology, international development, open data, and digital governance. Available for advisory, consulting, and full-time engagements.</span></p>
-<p class="p13"><span class="s1">EMAIL</span></p>
-<p class="p28"><span class="s1"><a href="mailto:koto@dreamers-media.com.au">koto@dreamers-media.com<span class="s10"></span></a></span></p>
-<p class="p13"><span class="s1">LINKEDIN</span></p>
-<p class="p28"><span class="s1"><a href="https://linkedin.com/in/YOUR_PROFILE">linkedin.com/in/kotoqalo/<span class="s10"></span></a></span></p>
-<p class="p13"><span class="s1">CV (PDF)</span></p>
-<p class="p28"><span class="s1"><a href="https://drive.google.com/file/d/YOUR_CV_FILE_ID/view">Download from Google Drive<span class="s10"></span></a></span></p>
-<p class="p13"><span class="s1">CONSULTANCY</span></p>
-<p class="p28"><span class="s1"><a href="https://www.dreamers-media.com.au/">www.dreamers-media.com<span class="s10"></span></a></span></p>
-<p class="p13"><span class="s1">BASED</span></p>
-<p class="p29"><span class="s1">Victoria, Australia &amp; New York, NY (Jun–Jul 2026)</span></p>
-<p class="p30"><span class="s3">© 2026 Koto Qalo · Dreamers-Media Pacific · ABN 72 417 871 405</span></p>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-brand">KOTO QALO</span>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#expertise">Expertise</a></li>
+    <li><a href="#global">Global Reach</a></li>
+    <li><a href="#career">Career</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero-wrapper">
+  <div class="hero">
+    <div>
+      <p class="hero-eyebrow">Digital Systems Architect · AI &amp; Data Governance · Cybersecurity · Civic Technology</p>
+      <h1 class="hero-name">Koto Qalo</h1>
+      <p class="hero-title">
+        Founder &amp; Lead Systems Architect, Dreamers-Media Pacific<br/>
+        Technical Adviser, Integrate Pasifika — SPC/GEM Division<br/>
+        International Fellow, U.S. Department of State (2025–2026)
+      </p>
+      <p class="hero-bio">
+        I design and deploy digital systems that work in the real world — across government agencies,
+        UN bodies, distributed Pacific networks, and low-resource environments on multiple continents.
+        With a decade of hands-on delivery spanning customs automation, open data platforms,
+        international tourism systems, indigenous knowledge preservation, and civic technology,
+        I bring rare depth across both the technical and governance dimensions of complex digital programmes.
+        I move fast in new domains and build systems that last.
+      </p>
+      <div class="hero-tags">
+        <span class="hero-tag">AI Governance</span>
+        <span class="hero-tag">Data Architecture</span>
+        <span class="hero-tag">CISM Certified</span>
+        <span class="hero-tag">Open Data</span>
+        <span class="hero-tag">Civic Technology</span>
+        <span class="hero-tag">Cross-Border Trade Systems</span>
+        <span class="hero-tag">MSc Software Engineering</span>
+        <span class="hero-tag">Indigenous Knowledge Systems</span>
+      </div>
+      <div class="hero-cta">
+        <a href="https://drive.google.com/file/d/YOUR_CV_FILE_ID/view" target="_blank" class="btn-primary">Download CV (PDF)</a>
+        <a href="#contact" class="btn-ghost">Get in touch</a>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-number">10+</div>
+        <div class="stat-label">Years delivering digital systems across government, UN, and regional bodies</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">6+</div>
+        <div class="stat-label">Pacific Island Countries — live production deployments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">3</div>
+        <div class="stat-label">UN and multilateral agency engagements</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">CISM</div>
+        <div class="stat-label">Certified Information Security Manager — ISACA 2024</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT / WHAT I DO -->
+<div class="section-wrap" id="about">
+  <div class="section">
+    <div class="section-header">
+      <p class="section-eyebrow">What I do</p>
+      <h2 class="section-title">Digital systems that endure</h2>
+      <p class="section-lead">Most digital systems fail not at build time, but after — when the team leaves, the budget ends, and the environment is harder than anticipated. My specialisation is designing systems that keep working: through governance models, operational frameworks, and architectures built for the real constraints of distributed, multi-country, and low-resource environments.</p>
+    </div>
+    <div class="value-strip">
+      <div class="value-item">
+        <div class="value-icon">⚡</div>
+        <div class="value-title">Rapid domain fluency</div>
+        <div class="value-desc">Moved from national tourism ICT to UN customs systems to AI governance platforms — each to production delivery, each in a new institutional context.</div>
+      </div>
+      <div class="value-item">
+        <div class="value-icon">🌏</div>
+        <div class="value-title">Multi-country execution</div>
+        <div class="value-desc">Live deployments across Tonga, Tuvalu, Kiribati, Fiji, Samoa, and Vanuatu — coordinating national governments and regional bodies simultaneously.</div>
+      </div>
+      <div class="value-item">
+        <div class="value-icon">🔐</div>
+        <div class="value-title">Security-aware architecture</div>
+        <div class="value-desc">CISM-certified. Designed disaster recovery plans, SLA frameworks, and ISMS advisory across multi-country government systems.</div>
+      </div>
+      <div class="value-item">
+        <div class="value-icon">🏛️</div>
+        <div class="value-title">Institutional fluency</div>
+        <div class="value-desc">Delivered inside UNCTAD, SPC, the U.S. Department of State, and Pacific Island governments — navigating the policy, governance, and technical layers together.</div>
+      </div>
+      <div class="value-item">
+        <div class="value-icon">🔗</div>
+        <div class="value-title">Sustainability by design</div>
+        <div class="value-desc">Systems designed with costed IT support models, lifecycle management strategies, and operational workflows — so they are maintained, not just deployed.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECTS -->
+<div class="section-wrap alt" id="projects">
+  <div class="section">
+    <div class="section-header">
+      <p class="section-eyebrow">Selected Projects</p>
+      <h2 class="section-title">Delivery track record</h2>
+      <p class="section-lead">Systems built and shipped across UN agencies, Pacific governments, global tourism boards, and civic technology programmes.</p>
+    </div>
+
+    <div class="projects-grid">
+
+      <div class="project-card">
+        <span class="project-tag">Open Data · Civic Platform</span>
+        <h3 class="project-name">Integrate Pasifika</h3>
+        <p class="project-org">PACIFIC COMMUNITY (SPC) / GEM Division — 2024–Present</p>
+        <p class="project-desc">
+          Project Lead Developer and Technical Adviser for the Pacific's first community-driven open data and civic technology commons. Designed a multi-stakeholder platform integrating policy, scientific, and community data across Pacific Island Countries — built to remain operational, scalable, and governed beyond the initial project cycle.
+        </p>
+        <ul class="project-outcomes">
+          <li>Multi-country distributed architecture with centralised, decentralised, and hybrid support models</li>
+          <li>Indigenous knowledge protocols integrated with open data and interoperability standards</li>
+          <li>Operational service delivery frameworks across regional and national stakeholders</li>
+          <li>Presented at UN Open Source Week, New York, June 2026</li>
+        </ul>
+      </div>
+
+      <div class="project-card amber-top">
+        <span class="project-tag amber">International Trade · Customs Automation</span>
+        <h3 class="project-name">ASYCUDAWorld — Pacific Multi-Country Rollout</h3>
+        <p class="project-org">UNCTAD — Information System Officer · 2020–2021</p>
+        <p class="project-desc">
+          Implemented and supported UNCTAD's ASYCUDAWorld customs automation platform across six Pacific Island Countries — Tonga, Tuvalu, Kiribati, Fiji, Samoa, and Vanuatu. Designed SLA frameworks, disaster recovery plans, and multi-country system continuity structures. Coordinated national customs authorities with regional bodies for cross-border data integrity and trade documentation flows.
+        </p>
+        <ul class="project-outcomes">
+          <li>6 live national customs deployments with active government operations teams</li>
+          <li>SLA frameworks and escalation pathways designed per country and regionally</li>
+          <li>Disaster recovery and business continuity plans across all deployments</li>
+          <li>Cost-aware service delivery models balancing regional coordination with national capacity</li>
+          <li>Remote and in-country technical support, training, and system optimisation</li>
+        </ul>
+      </div>
+
+      <div class="project-card blue-top">
+        <span class="project-tag blue">Digital Tourism · Global Operations</span>
+        <h3 class="project-name">Tourism Fiji — ICT &amp; Digital Systems</h3>
+        <p class="project-org">TOURISM FIJI — ICT Manager · 2013–2017</p>
+        <p class="project-desc">
+          Led all ICT and digital systems for Fiji's national tourism authority — including its international office network spanning Australia, New Zealand, the United States, the United Kingdom, Japan, Singapore, and Europe. Managed CRM infrastructure, digital marketing platforms, analytics pipelines, and data systems supporting an industry that contributes over 40% of Fiji's GDP and attracts visitors from more than 16 countries.
+        </p>
+        <ul class="project-outcomes">
+          <li>Global ICT operations across Tourism Fiji's offices in 7+ countries</li>
+          <li>CRM and visitor data platform serving international markets worth $2.9B+ annually</li>
+          <li>Digital marketing infrastructure reaching visitors from the USA, Australia, NZ, UK, Japan, Singapore, Canada, and Europe</li>
+          <li>Analytics and reporting systems informing national tourism strategy across 14 provinces</li>
+        </ul>
+      </div>
+
+      <div class="project-card">
+        <span class="project-tag">Indigenous Knowledge · Language Preservation</span>
+        <h3 class="project-name">Pacific Kids Learning — Bilingual Language Platform</h3>
+        <p class="project-org">PACIFIC KIDS LEARNING — Indigenous Knowledge &amp; Language Systems Consultant · Feb–Apr 2026</p>
+        <p class="project-desc">
+          Indigenous Knowledge and Language Systems Consultant supporting development of bilingual early childhood education materials for Pacific communities. Worked directly with Rotuman cultural knowledge holders to translate oral storytelling traditions into structured digital learning resources. Designed culturally appropriate frameworks for Indigenous language documentation and digital delivery.
+        </p>
+        <ul class="project-outcomes">
+          <li>Rotuman language and oral tradition digital preservation framework</li>
+          <li>Bilingual learning content aligned with Pacific early childhood literacy standards</li>
+          <li>Culturally appropriate documentation and narration design guidelines</li>
+        </ul>
+      </div>
+
+      <div class="project-card blue-top">
+        <span class="project-tag blue">Policy Technology · International Development</span>
+        <h3 class="project-name">Education Platforms &amp; Systems Strategy Fellowship</h3>
+        <p class="project-org">U.S. DEPARTMENT OF STATE — Washington DC · Aug 2025–Feb 2026</p>
+        <p class="project-desc">
+          Competitively selected for a U.S. State Department-affiliated international fellowship based in Washington DC. Contributed technology and platform strategy perspectives to education and international development initiatives. Engaged with policymakers, practitioners, and global organisations on digital platforms, governance, and innovation — representing Pacific Indigenous and Global South perspectives within policy-adjacent forums.
+        </p>
+        <ul class="project-outcomes">
+          <li>Competitive international selection for Washington DC policy-technology placement</li>
+          <li>Platform and systems strategy contribution to education and development programmes</li>
+          <li>Engagement with policymakers, UN bodies, and international development organisations</li>
+        </ul>
+      </div>
+
+      <div class="project-card">
+        <span class="project-tag">Climate Data · Knowledge Systems</span>
+        <h3 class="project-name">COSPPac Traditional Knowledge Database v5</h3>
+        <p class="project-org">SPREP — Pacific Climate Change Centre · 2026</p>
+        <p class="project-desc">
+          Technical proposal lead for the upgrade of SPREP's Traditional Knowledge Database — the Pacific's authoritative repository linking Indigenous knowledge with climate science for adaptation planning. Delivered full technical architecture, data governance framework, and implementation planning for the v5 upgrade.
+        </p>
+        <ul class="project-outcomes">
+          <li>Indigenous knowledge systems architecture meeting international open data standards</li>
+          <li>Data sovereignty and governance framework for sensitive cultural and scientific materials</li>
+          <li>Platform serving Pacific regional and global climate research communities</li>
+        </ul>
+      </div>
+
+      <div class="project-card">
+        <span class="project-tag">Community Resilience · EdTech</span>
+        <h3 class="project-name">BERO Learning Platform</h3>
+        <p class="project-org">CATALPA INTERNATIONAL — Frontend Software Engineer · 2021–2022</p>
+        <p class="project-desc">
+          Constructed and deployed high-impact frontend features for Pacific community resilience and learning platforms. Collaborated with product and design teams to translate community user requirements into technical solutions. Mentored junior engineers in Agile methodologies and led testing and iteration cycles grounded in user feedback.
+        </p>
+        <ul class="project-outcomes">
+          <li>Community resilience data collection and reporting features</li>
+          <li>Agile delivery with Pacific community user research integration</li>
+          <li>Junior engineering mentorship and code quality programme</li>
+        </ul>
+      </div>
+
+      <div class="project-card">
+        <span class="project-tag">Research Systems · Enterprise</span>
+        <h3 class="project-name">Research Domain Application Development</h3>
+        <p class="project-org">UNIVERSITY OF MELBOURNE — Senior Application Developer · 2022</p>
+        <p class="project-desc">
+          Delivered advanced technical support and service restoration under SLA frameworks for research-domain applications at the University of Melbourne. Developed support documentation and knowledge artefacts for long-term system maintenance. Managed production and non-production system environments.
+        </p>
+        <ul class="project-outcomes">
+          <li>SLA-governed support delivery for research-critical enterprise systems</li>
+          <li>Production and staging environment management</li>
+          <li>Technical documentation for long-term operational continuity</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EXPERTISE -->
+<div class="section-wrap" id="expertise">
+  <div class="section">
+    <div class="section-header">
+      <p class="section-eyebrow">Domain Expertise</p>
+      <h2 class="section-title">Core capabilities</h2>
+      <p class="section-lead">Each domain below reflects active, delivered work — not claimed expertise but demonstrated capability in complex institutional and technical environments.</p>
+    </div>
+
+    <div class="expertise-grid">
+
+      <div class="expertise-item">
+        <p class="expertise-name">AI Governance &amp; Data Policy</p>
+        <p class="expertise-desc">Designed AI-ready data platform governance for Integrate Pasifika. Contributed to AI ethics and platform strategy at the U.S. Department of State fellowship. Experienced in responsible AI adoption aligned with international standards and institutional realities.</p>
+        <div class="expertise-tags">
+          <span class="etag">AI Policy</span><span class="etag">Data Ethics</span><span class="etag">Governance Frameworks</span>
+        </div>
+      </div>
+
+      <div class="expertise-item">
+        <p class="expertise-name">Cybersecurity &amp; Information Security Management</p>
+        <p class="expertise-desc">CISM-certified (ISACA 2024). Designed disaster recovery and system continuity plans for 6 national governments. ISMS advisory on current FFA ISO 27001 engagement. Security-by-design integrated across all systems architecture work.</p>
+        <div class="expertise-tags">
+          <span class="etag">CISM</span><span class="etag">ISO 27001</span><span class="etag">Disaster Recovery</span><span class="etag">SLA Frameworks</span>
+        </div>
+      </div>
+
+      <div class="expertise-item">
+        <p class="expertise-name">Open Data &amp; Data Governance</p>
+        <p class="expertise-desc">Architected open data commons platforms with indigenous data sovereignty protocols. Developed interoperability standards for multi-country Pacific data systems. FAIR data principles applied to platform design across climate, governance, and community domains.</p>
+        <div class="expertise-tags">
+          <span class="etag">Data Architecture</span><span class="etag">FAIR Data</span><span class="etag">Interoperability</span><span class="etag">Open Standards</span>
+        </div>
+      </div>
+
+      <div class="expertise-item">
+        <p class="expertise-name">International Trade &amp; Cross-Border Digital Systems</p>
+        <p class="expertise-desc">Deep operational knowledge of customs clearance data flows, trade documentation systems, cross-border system coordination, and service delivery architecture from six-country ASYCUDAWorld deployment under UNCTAD.</p>
+        <div class="expertise-tags">
+          <span class="etag">Trade Systems</span><span class="etag">Customs Data</span><span class="etag">Cross-Border</span><span class="etag">UNCTAD</span>
+        </div>
+      </div>
+
+      <div class="expertise-item">
+        <p class="expertise-name">Distributed Systems Architecture</p>
+        <p class="expertise-desc">Designed centralised, decentralised, and hybrid system support models for multi-country deployments. Open-source-aligned, modular architectures for low-bandwidth and low-capacity environments. Lifecycle management and long-term operational sustainability built in from design.</p>
+        <div class="expertise-tags">
+          <span class="etag">System Design</span><span class="etag">Open Source</span><span class="etag">Modular Architecture</span><span class="etag">Scalability</span>
+        </div>
+      </div>
+
+      <div class="expertise-item">
+        <p class="expertise-name">Software Engineering</p>
+        <p class="expertise-desc">Full-stack development, frontend engineering (React, Agile), enterprise platform deployment, API development, and government systems integration. M.Sc. Software Engineering, University of Melbourne (2025).</p>
+        <div class="expertise-tags">
+          <span class="etag">Full-Stack</span><span class="etag">React</span><span class="etag">APIs</span><span class="etag">Agile</span><span class="etag">MSc Melbourne 2025</span>
+        </div>
+      </div>
+
+      <div class="expertise-item">
+        <p class="expertise-name">Digital Transformation Programme Management</p>
+        <p class="expertise-desc">Led multi-stakeholder digital transformation programmes inside UNCTAD, Tourism Fiji, SPC, and the Department of Education and Training Victoria. MSc Project Management, Curtin University.</p>
+        <div class="expertise-tags">
+          <span class="etag">Programme Management</span><span class="etag">Stakeholder Engagement</span><span class="etag">MSc PM Curtin</span>
+        </div>
+      </div>
+
+      <div class="expertise-item">
+        <p class="expertise-name">IT Support Model Design</p>
+        <p class="expertise-desc">Specialist capability: costed, comparative analysis of IT support models for distributed multi-country systems. Developed SLA frameworks, escalation pathways, and lifecycle management strategies for post-deployment sustainability in low-resource environments.</p>
+        <div class="expertise-tags">
+          <span class="etag">IT Support Models</span><span class="etag">SLA Design</span><span class="etag">Lifecycle Management</span><span class="etag">Costed Options</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- GLOBAL -->
+<div class="section-wrap alt" id="global">
+  <div class="section">
+    <div class="section-header">
+      <p class="section-eyebrow">Global Reach</p>
+      <h2 class="section-title">Countries and markets I have worked in or for</h2>
+      <p class="section-lead">International experience that is operational — systems live in production, governments onboarded, tourism boards served across multiple continents, and national data pipelines running.</p>
+    </div>
+    <div class="markets-grid">
+      <div class="market-card">
+        <div class="market-flag">🇫🇯</div>
+        <div class="market-country">Fiji</div>
+        <div class="market-role">Tourism Fiji ICT · ASYCUDAWorld · Integrate Pasifika · Home country</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇹🇴</div>
+        <div class="market-country">Tonga</div>
+        <div class="market-role">ASYCUDAWorld — national customs system deployment</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇹🇻</div>
+        <div class="market-country">Tuvalu</div>
+        <div class="market-role">ASYCUDAWorld — national customs system deployment</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇰🇮</div>
+        <div class="market-country">Kiribati</div>
+        <div class="market-role">ASYCUDAWorld — national customs system deployment</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇼🇸</div>
+        <div class="market-country">Samoa</div>
+        <div class="market-role">ASYCUDAWorld · Integrate Pasifika platform</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇻🇺</div>
+        <div class="market-country">Vanuatu</div>
+        <div class="market-role">ASYCUDAWorld · Pacific regional platforms</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇦🇺</div>
+        <div class="market-country">Australia</div>
+        <div class="market-role">Tourism Fiji AU office · Dept of Education Victoria · Catalpa International · University of Melbourne</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇳🇿</div>
+        <div class="market-country">New Zealand</div>
+        <div class="market-role">Tourism Fiji NZ office · Pacific Kids Learning</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇺🇸</div>
+        <div class="market-country">United States</div>
+        <div class="market-role">Tourism Fiji USA office · U.S. State Dept Fellowship · UN Open Source Week NYC</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇬🇧</div>
+        <div class="market-country">United Kingdom</div>
+        <div class="market-role">Tourism Fiji UK office — digital systems and CRM operations</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇯🇵</div>
+        <div class="market-country">Japan</div>
+        <div class="market-role">Tourism Fiji Japan office — digital marketing infrastructure</div>
+      </div>
+      <div class="market-card">
+        <div class="market-flag">🇸🇬</div>
+        <div class="market-country">Singapore</div>
+        <div class="market-role">Tourism Fiji Singapore office — Asia-Pacific systems</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CREDENTIALS -->
+<div class="section-wrap" id="credentials">
+  <div class="section">
+    <div class="section-header">
+      <p class="section-eyebrow">Credentials</p>
+      <h2 class="section-title">Education &amp; recognition</h2>
+    </div>
+    <div class="credentials-row">
+      <div class="credential-badge">
+        <div class="badge-icon"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
+        <div><p class="badge-label">Master of Software Engineering</p><p class="badge-sub">University of Melbourne — 2025</p></div>
+      </div>
+      <div class="credential-badge">
+        <div class="badge-icon"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
+        <div><p class="badge-label">M.Sc. Project Management</p><p class="badge-sub">Curtin University, Australia</p></div>
+      </div>
+      <div class="credential-badge">
+        <div class="badge-icon"><svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
+        <div><p class="badge-label">Bachelor of Information Technology</p><p class="badge-sub">University of Fiji — 2011</p></div>
+      </div>
+    </div>
+    <div class="credentials-row">
+      <div class="credential-badge">
+        <div class="badge-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <div><p class="badge-label">CISM — Certified Information Security Manager</p><p class="badge-sub">ISACA — 2024</p></div>
+      </div>
+      <div class="credential-badge">
+        <div class="badge-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+        <div><p class="badge-label">UN Open Source Week Speaker</p><p class="badge-sub">New York City — June 2026</p></div>
+      </div>
+      <div class="credential-badge">
+        <div class="badge-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <div><p class="badge-label">U.S. Department of State International Fellow</p><p class="badge-sub">Washington DC — 2025–2026</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIMELINE -->
+<div class="section-wrap alt" id="career">
+  <div class="section">
+    <div class="section-header">
+      <p class="section-eyebrow">Career History</p>
+      <h2 class="section-title">Professional timeline</h2>
+    </div>
+    <div class="timeline">
+
+      <div class="timeline-item">
+        <p class="timeline-date">Feb 2026 – Present</p>
+        <p class="timeline-role">Founder &amp; Lead Systems Architect</p>
+        <p class="timeline-org">Dreamers-Media Pacific — Victoria, Australia / Pacific Region</p>
+        <ul class="timeline-points">
+          <li>Designed and implemented Integrate Pasifika — regional open data and civic technology platform</li>
+          <li>Modular, open-source-aligned architectures for scalability and interoperability across Pacific networks</li>
+          <li>Costed and comparative IT support model analysis: centralised, decentralised, and hybrid options</li>
+          <li>Government and regional organisation engagement across Pacific policy, governance, and capacity contexts</li>
+          <li>Systems designed for low-bandwidth, low-capacity environments with long-term usability</li>
+        </ul>
+      </div>
+
+      <div class="timeline-item">
+        <p class="timeline-date">Feb 2026 – Apr 2026</p>
+        <p class="timeline-role">Indigenous Knowledge &amp; Language Systems Consultant</p>
+        <p class="timeline-org">Pacific Kids Learning — New Zealand / Pacific Region</p>
+        <ul class="timeline-points">
+          <li>Bilingual early childhood learning resources built from Rotuman oral storytelling traditions</li>
+          <li>Indigenous language documentation and digital preservation frameworks</li>
+          <li>Pacific cultural knowledge integrated with contemporary early childhood literacy design</li>
+        </ul>
+      </div>
+
+      <div class="timeline-item">
+        <p class="timeline-date">Aug 2025 – Feb 2026</p>
+        <p class="timeline-role">International Fellow — Education Platforms &amp; Systems Strategy</p>
+        <p class="timeline-org">U.S. Department of State — Washington DC, USA</p>
+        <ul class="timeline-points">
+          <li>Competitive international selection for State Department technology fellowship</li>
+          <li>Technology and platform strategy for education and international development programmes</li>
+          <li>Engagement with global policymakers, UN bodies, and development organisations</li>
+          <li>Represented Pacific Indigenous and Global South digital perspectives in policy-adjacent forums</li>
+        </ul>
+      </div>
+
+      <div class="timeline-item">
+        <p class="timeline-date">Jun 2024 – Aug 2025</p>
+        <p class="timeline-role">Project Lead Developer (Consultant)</p>
+        <p class="timeline-org">Pacific Community (SPC) / GEM Division</p>
+        <ul class="timeline-points">
+          <li>Multi-stakeholder platform integrating policy, scientific, and community data across Pacific countries</li>
+          <li>System governance and operational frameworks for ongoing sustainability across distributed stakeholders</li>
+          <li>Alternative IT support model design including hybrid and decentralised approaches</li>
+          <li>Service delivery frameworks with defined roles, responsibilities, and support workflows</li>
+        </ul>
+      </div>
+
+      <div class="timeline-item">
+        <p class="timeline-date">Feb 2023 – Jun 2024</p>
+        <p class="timeline-role">Information Services Analyst</p>
+        <p class="timeline-org">Department of Education and Training — State of Victoria, Australia</p>
+        <ul class="timeline-points">
+          <li>Data systems and operational reporting pipelines for one of Australia's largest government departments</li>
+          <li>Governance, security, and compliance frameworks in a large-scale institutional environment</li>
+        </ul>
+      </div>
+
+      <div class="timeline-item">
+        <p class="timeline-date">Aug 2022 – Dec 2022</p>
+        <p class="timeline-role">Senior Application Developer (Research Domain)</p>
+        <p class="timeline-org">University of Melbourne</p>
+        <ul class="timeline-points">
+          <li>SLA-governed technical support and service restoration for research-critical applications</li>
+          <li>Production and non-production environment management</li>
+          <li>Support documentation and knowledge artefacts for long-term system maintenance</li>
+        </ul>
+      </div>
+
+      <div class="timeline-item">
+        <p class="timeline-date">Oct 2021 – Apr 2022</p>
+        <p class="timeline-role">Frontend Software Engineer (Consultant)</p>
+        <p class="timeline-org">Catalpa International</p>
+        <ul class="timeline-points">
+          <li>Frontend engineering for Pacific community resilience and learning platforms</li>
+          <li>Agile product delivery with continuous user feedback integration</li>
+          <li>Junior engineer mentorship and code quality programme</li>
+        </ul>
+      </div>
+
+      <div class="timeline-item">
+        <p class="timeline-date">Sep 2020 – Sep 2021</p>
+        <p class="timeline-role">Information System Officer</p>
+        <p class="timeline-org">United Nations Conference on Trade and Development (UNCTAD)</p>
+        <ul class="timeline-points">
+          <li>ASYCUDAWorld implementation and support across 6 Pacific Island Countries</li>
+          <li>SLA design, disaster recovery, and multi-country system continuity planning</li>
+          <li>Remote and in-country technical support, system optimisation, and government training</li>
+          <li>Cost-aware service delivery models coordinating regional and national stakeholders</li>
+        </ul>
+      </div>
+
+      <div class="timeline-item">
+        <p class="timeline-date">Nov 2018 – Sep 2020</p>
+        <p class="timeline-role">Systems Development Engineer</p>
+        <p class="timeline-org">Australia Pacific Training Coalition</p>
+        <ul class="timeline-points">
+          <li>Software solutions enhancing operational performance and development agility</li>
+          <li>Quality control procedures and automation scripts for system reliability</li>
+          <li>Network and infrastructure integration with engineering teams</li>
+        </ul>
+      </div>
+
+      <div class="timeline-item">
+        <p class="timeline-date">Aug 2013 – Jan 2017</p>
+        <p class="timeline-role">ICT Manager</p>
+        <p class="timeline-org">Tourism Fiji — Suva, Fiji / International Offices</p>
+        <ul class="timeline-points">
+          <li>ICT leadership across Tourism Fiji's global network: Australia, NZ, USA, UK, Japan, Singapore, and Europe</li>
+          <li>CRM, digital marketing infrastructure, and analytics for a $2.9B+ annual tourism industry</li>
+          <li>International digital campaigns reaching visitors from 16+ countries across 6 continents</li>
+          <li>Digital systems supporting Fiji's 14 provinces and international trade partners</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT -->
+<div class="contact-wrapper" id="contact">
+  <div class="contact-inner">
+    <div>
+      <h2 class="contact-heading">Let's build something that lasts</h2>
+      <p class="contact-sub">
+        I am available for senior advisory roles, consulting engagements, and full-time positions
+        at the intersection of AI governance, data systems, cybersecurity, civic technology,
+        and international digital transformation. I bring operational depth across institutional, government,
+        and distributed environments that is difficult to find in a single profile.
+      </p>
+    </div>
+    <div class="contact-links">
+      <div class="contact-item">
+        <span class="contact-item-label">Email</span>
+        <a href="mailto:koto@dreamers-media.com" class="contact-item-value">koto@dreamers-media.com</a>
+      </div>
+      <div class="contact-item">
+        <span class="contact-item-label">LinkedIn</span>
+        <a href="https://www.linkedin.com/in/kotoqalo/" target="_blank" class="contact-item-value">linkedin.com/in/kotoqalo</a>
+      </div>
+      <div class="contact-item">
+        <span class="contact-item-label">CV</span>
+        <a href="https://drive.google.com/file/d/YOUR_CV_FILE_ID/view" target="_blank" class="contact-item-value">Download CV (PDF) →</a>
+      </div>
+      <div class="contact-item">
+        <span class="contact-item-label">Consultancy</span>
+        <a href="https://www.dreamers-media.com" target="_blank" class="contact-item-value">dreamers-media.com</a>
+      </div>
+      <div class="contact-item">
+        <span class="contact-item-label">Phone</span>
+        <span class="contact-item-value">+61 435 467 036</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>© 2026 Koto Qalo · Dreamers-Media Pacific Pty Ltd · ABN 72 417 871 405 · koto@dreamers-media.com</footer>
+
 </body>
 </html>
