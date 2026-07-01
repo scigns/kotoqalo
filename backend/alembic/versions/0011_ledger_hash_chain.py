@@ -87,6 +87,33 @@ def upgrade() -> None:
         -- search_path is pinned to guard against the classic SECURITY
         -- DEFINER search_path-hijack risk, even though app_rw has no
         -- CREATE privilege on this schema to exploit it anyway.
+        -- The hash commits to every real column of the row (id,
+        -- ledger_transaction_id, account_id, currency_code, direction,
+        -- amount, created_by, created_at) except the hash-chain
+        -- bookkeeping columns themselves (chain_seq, previous_hash,
+        -- row_hash) -- fail-closed, mirroring the invoice-freeze
+        -- trigger's pattern of excluding a small named set rather than
+        -- allowlisting one. An earlier version of this trigger hashed
+        -- only 6 named columns and missed id/created_at entirely: an
+        -- out-of-band tamperer (someone who bypasses live-DB enforcement
+        -- via a restored/edited backup or direct data manipulation, not
+        -- a normal client -- see prevent_mutation()'s own docstring)
+        -- could have altered created_at without the chain ever
+        -- detecting it, defeating the whole point of tamper-evidence.
+        --
+        -- This uses an explicit column list rather than
+        -- to_jsonb(NEW) - excluded_keys (the pattern used for the
+        -- invoice-freeze trigger) deliberately: to_jsonb() on a
+        -- composite/row value orders keys by the table's current column
+        -- (attnum) order, which is stable *today* but is an
+        -- implementation detail, not a documented guarantee upheld
+        -- across all future Postgres versions or column-drop-and-re-add
+        -- schema changes -- and unlike the invoice trigger (which only
+        -- compares OLD vs NEW within the same statement, same version,
+        -- same session), this hash is a permanent commitment meant to be
+        -- independently reverifiable years later, possibly against a
+        -- different Postgres major version. An explicit, fixed column
+        -- list has no such dependency.
         CREATE FUNCTION chain_ledger_entry_hash() RETURNS trigger
         SECURITY DEFINER
         SET search_path = public
@@ -100,12 +127,14 @@ def upgrade() -> None:
             NEW.row_hash := digest(
                 convert_to(
                     encode(prev_hash, 'hex') || ':' ||
+                    NEW.id::text || ':' ||
                     NEW.ledger_transaction_id::text || ':' ||
                     NEW.account_id::text || ':' ||
                     NEW.currency_code || ':' ||
                     NEW.direction::text || ':' ||
                     NEW.amount::text || ':' ||
-                    NEW.created_by::text,
+                    NEW.created_by::text || ':' ||
+                    NEW.created_at::text,
                     'UTF8'
                 ),
                 'sha256'

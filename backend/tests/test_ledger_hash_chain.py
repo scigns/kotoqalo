@@ -14,7 +14,30 @@ import psycopg
 GENESIS_HASH = hashlib.sha256(b"dreamers-media-pacific-ledger-genesis").digest()
 
 
-def _expected_row_hash(previous_hash, ledger_transaction_id, account_id, currency_code, direction, amount, created_by):
+def _expected_row_hash(previous_hash, entry_id, ledger_transaction_id, account_id, currency_code, direction, amount, created_by, created_at):
+    """Mirrors chain_ledger_entry_hash()'s current formula: every real
+    column of ledger_entries except the hash-chain bookkeeping columns
+    themselves (chain_seq, previous_hash, row_hash)."""
+    material = ":".join(
+        [
+            previous_hash.hex(),
+            str(entry_id),
+            str(ledger_transaction_id),
+            str(account_id),
+            currency_code,
+            direction,
+            str(amount),
+            str(created_by),
+            str(created_at),
+        ]
+    )
+    return hashlib.sha256(material.encode("utf-8")).digest()
+
+
+def _old_row_hash_formula(previous_hash, ledger_transaction_id, account_id, currency_code, direction, amount, created_by):
+    """Reproduces the PRE-FIX formula exactly (6 named columns; no id, no
+    created_at). Used only by the negative control below to prove that
+    gap was real, not to validate current behavior."""
     material = ":".join(
         [
             previous_hash.hex(),
@@ -48,7 +71,7 @@ def _insert_entry(db, user_id, transaction_id, account_id, direction, amount, cu
         """
         INSERT INTO ledger_entries (ledger_transaction_id, account_id, currency_code, direction, amount, created_by)
         VALUES (%s, %s, %s, %s, %s, %s)
-        RETURNING id, chain_seq, previous_hash, row_hash, currency_code, direction, amount, created_by
+        RETURNING id, chain_seq, previous_hash, row_hash, currency_code, direction, amount, created_by, created_at::text
         """,
         (transaction_id, account_id, currency, direction, amount, user_id),
     )
@@ -62,6 +85,7 @@ def _insert_entry(db, user_id, transaction_id, account_id, direction, amount, cu
         "direction": row[5],
         "amount": row[6],
         "created_by": row[7],
+        "created_at": row[8],
     }
 
 
@@ -74,12 +98,14 @@ def test_first_entry_in_an_empty_ledger_chains_from_genesis(db, seed):
     assert entry["previous_hash"] == GENESIS_HASH
     assert entry["row_hash"] == _expected_row_hash(
         GENESIS_HASH,
+        entry["id"],
         txn_id,
         seed["ar_account_id"],
         entry["currency_code"],
         entry["direction"],
         entry["amount"],
         entry["created_by"],
+        entry["created_at"],
     )
 
 
@@ -101,16 +127,26 @@ def test_chain_links_consecutive_entries_and_is_independently_verifiable(db, see
     # exactly what's stored -- this is what a tamper check would do
     # against an export of the table.
     expected_first = _expected_row_hash(
-        GENESIS_HASH, txn_id, seed["ar_account_id"], first["currency_code"], first["direction"], first["amount"], first["created_by"]
+        GENESIS_HASH,
+        first["id"],
+        txn_id,
+        seed["ar_account_id"],
+        first["currency_code"],
+        first["direction"],
+        first["amount"],
+        first["created_by"],
+        first["created_at"],
     )
     expected_second = _expected_row_hash(
         first["row_hash"],
+        second["id"],
         txn_id,
         seed["revenue_account_id"],
         second["currency_code"],
         second["direction"],
         second["amount"],
         second["created_by"],
+        second["created_at"],
     )
     assert first["row_hash"] == expected_first
     assert second["row_hash"] == expected_second
@@ -136,6 +172,93 @@ def test_concurrent_inserts_do_not_fork_the_chain(db, seed):
     assert seqs == sorted(seqs)
     for prev, curr in zip(entries, entries[1:]):
         assert curr["previous_hash"] == prev["row_hash"]
+
+
+def test_old_hash_formula_missed_column_tampering_new_formula_catches_it(db, seed):
+    """Negative control for the row_hash coverage fix: the pre-fix
+    formula committed to only 6 named columns and never touched id or
+    created_at. This proves that gap was real: tampering with
+    created_at via a connection that bypasses the append-only trigger
+    entirely (simulating an out-of-band tamperer -- e.g. someone editing
+    a restored backup or writing to the data files directly, not a
+    normal application write, which the trigger already blocks) would
+    have gone completely undetected by the old formula, and is caught by
+    the current one.
+    """
+    db.cursor().execute("SET ROLE app_rw")
+    uid = seed["user_id"]
+    account_id = seed["ar_account_id"]
+    txn_id = _insert_ledger_transaction(db, uid, "Tamper-detection negative control")
+    entry = _insert_entry(db, uid, txn_id, account_id, "debit", "42.00")
+    # Balance the transaction and force the deferred balance-check to
+    # fire now -- ALTER TABLE below is disallowed while a deferred
+    # trigger event is still pending on this table.
+    _insert_entry(db, uid, txn_id, seed["revenue_account_id"], "credit", "42.00")
+    db.cursor().execute("SET CONSTRAINTS ledger_entries_balance_check IMMEDIATE")
+
+    # entry["row_hash"] is what the CURRENT (fixed) trigger actually
+    # stored, computed from these original, untampered values.
+    assert entry["row_hash"] == _expected_row_hash(
+        entry["previous_hash"], entry["id"], txn_id, account_id,
+        entry["currency_code"], entry["direction"], entry["amount"],
+        entry["created_by"], entry["created_at"],
+    )
+
+    # What the OLD (pre-fix) formula would have produced for this same
+    # original row, had it been the deployed formula at insert time --
+    # computed from the same untampered values captured above, before
+    # any tampering happens.
+    old_formula_before_tamper = _old_row_hash_formula(
+        entry["previous_hash"], txn_id, account_id, entry["currency_code"],
+        entry["direction"], entry["amount"], entry["created_by"],
+    )
+
+    # Simulate an out-of-band tamperer: disabling the trigger is itself a
+    # loud, auditable DDL statement (see prevent_mutation()'s own
+    # docstring) -- this is exactly the threat model the hash chain
+    # exists to catch, distinct from the REVOKE/trigger defenses that
+    # stop a normal client outright.
+    owner_cur = db.cursor()
+    owner_cur.execute("RESET ROLE")
+    owner_cur.execute("ALTER TABLE ledger_entries DISABLE TRIGGER ledger_entries_prevent_mutation")
+    tampered_created_at = "2020-01-01T00:00:00+00:00"
+    owner_cur.execute(
+        "UPDATE ledger_entries SET created_at = %s WHERE id = %s",
+        (tampered_created_at, entry["id"]),
+    )
+    owner_cur.execute("ALTER TABLE ledger_entries ENABLE TRIGGER ledger_entries_prevent_mutation")
+
+    owner_cur.execute("SELECT created_at::text FROM ledger_entries WHERE id = %s", (entry["id"],))
+    tampered_created_at_value = owner_cur.fetchone()[0]
+    assert str(tampered_created_at_value) != str(entry["created_at"]), (
+        "tampering didn't actually change created_at -- test setup is broken"
+    )
+
+    # Recomputing with the OLD formula against the tampered row must
+    # reproduce the SAME hash as before tampering, since the old formula
+    # never looked at created_at in the first place -- the tampering is
+    # completely invisible to it.
+    old_formula_after_tamper = _old_row_hash_formula(
+        entry["previous_hash"], txn_id, account_id, entry["currency_code"],
+        entry["direction"], entry["amount"], entry["created_by"],
+    )
+    assert old_formula_after_tamper == old_formula_before_tamper, (
+        "the old formula should be blind to created_at tampering by construction -- "
+        "if this fails, the negative control setup itself is wrong, not proof of anything"
+    )
+
+    # Recomputing with the CURRENT (fixed) formula against the tampered
+    # row must now disagree with what's actually stored -- exposing the
+    # tampering that the old formula would have missed entirely.
+    new_formula_after_tamper = _expected_row_hash(
+        entry["previous_hash"], entry["id"], txn_id, account_id,
+        entry["currency_code"], entry["direction"], entry["amount"],
+        entry["created_by"], tampered_created_at_value,
+    )
+    assert new_formula_after_tamper != entry["row_hash"], (
+        "the current formula includes created_at, so it must detect this tampering "
+        "by producing a hash different from what's stored"
+    )
 
 
 def _raw_app_rw_connection():

@@ -107,8 +107,47 @@ def upgrade() -> None:
         """
     )
 
+    op.execute(
+        """
+        -- status is in guard_invoice_financial_fields()'s own
+        -- mutable_fields list (status must be changeable to progress
+        -- issued -> paid / issued -> void), but that trigger only
+        -- freezes fields *while* OLD.status <> 'draft' -- it has no
+        -- opinion on which status transitions are themselves valid. That
+        -- leaves a gap: setting status back to 'draft' on an
+        -- issued/paid/void invoice would silently make every other
+        -- financial field editable again on the *next* update (since
+        -- guard_invoice_financial_fields would then see OLD.status =
+        -- 'draft' and skip the freeze entirely), reopening exactly what
+        -- the freeze exists to close. invoice_status only has four
+        -- values (draft, issued, paid, void -- see
+        -- 0001_enums_and_helpers.py), so "any non-draft status ->
+        -- draft" is the complete set of reversions to forbid; this does
+        -- not otherwise constrain which forward transitions are valid
+        -- (e.g. issued -> void, issued -> paid), only that draft is a
+        -- one-way door once left.
+        CREATE FUNCTION guard_invoice_status_transitions() RETURNS trigger AS $$
+        BEGIN
+            IF OLD.status IN ('issued', 'paid', 'void') AND NEW.status = 'draft' THEN
+                RAISE EXCEPTION
+                    'invoice % cannot revert from status % back to draft -- this would silently unfreeze its financial fields on the next update; post a correction instead',
+                    OLD.id, OLD.status
+                    USING ERRCODE = 'raise_exception';
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+
+        CREATE TRIGGER invoices_guard_status_transitions
+            BEFORE UPDATE ON invoices
+            FOR EACH ROW EXECUTE FUNCTION guard_invoice_status_transitions();
+        """
+    )
+
 
 def downgrade() -> None:
+    op.execute("DROP TRIGGER IF EXISTS invoices_guard_status_transitions ON invoices;")
+    op.execute("DROP FUNCTION IF EXISTS guard_invoice_status_transitions();")
     op.execute("DROP TRIGGER IF EXISTS invoices_guard_financial_fields ON invoices;")
     op.execute("DROP FUNCTION IF EXISTS guard_invoice_financial_fields();")
     op.execute("DROP TABLE IF EXISTS invoices;")

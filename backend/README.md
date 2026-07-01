@@ -65,7 +65,13 @@ have no supported cleanup path by design.
   that stay mutable (`status`, `issued_at`, `due_date`, `pdf_object_key`,
   `updated_by`, `updated_at`), rather than enumerating which columns to
   freeze — a future migration adding a new financial column is frozen
-  automatically, with no matching trigger update required.
+  automatically, with no matching trigger update required. A second
+  trigger separately rejects any transition back to `status = 'draft'`
+  from `issued`/`paid`/`void` — without it, reverting to draft would
+  silently reopen the financial-field freeze on the *next* update
+  (since the freeze trigger only applies while `OLD.status <> 'draft'`),
+  a real gap caught by independent review; see
+  `tests/test_invoice_immutability.py` for the closed-loop proof.
 - `ledger_transactions` / `ledger_entries` — append-only, double-entry.
   No `UPDATE`/`DELETE` grant exists for `app_rw`, and a trigger blocks
   those operations (plus `TRUNCATE`) for every role, including the
@@ -73,14 +79,22 @@ have no supported cleanup path by design.
   whose entries don't balance per currency. Corrections are new
   transactions referencing the original via
   `reversal_of_transaction_id`. `ledger_entries` is additionally
-  hash-chained (`previous_hash`/`row_hash`, SHA-256 over each row's
-  plaintext fields) via a dedicated single-row `ledger_chain_tip` table
-  that the chaining trigger locks with `SELECT ... FOR UPDATE` — this
-  (not a "last row of `ledger_entries`" lookup) is what makes two
-  concurrent first-inserts serialize instead of both chaining from
-  genesis; see `alembic/versions/0011_ledger_hash_chain.py` and
+  hash-chained (`previous_hash`/`row_hash`, SHA-256 over every real
+  column except the hash-chain bookkeeping columns themselves) via a
+  dedicated single-row `ledger_chain_tip` table that the chaining
+  trigger locks with `SELECT ... FOR UPDATE` — this (not a "last row of
+  `ledger_entries`" lookup) is what makes two concurrent first-inserts
+  serialize instead of both chaining from genesis. The hash uses an
+  explicit column list rather than `to_jsonb(NEW) - excluded_keys`
+  (unlike the invoice-freeze trigger) because `to_jsonb`'s key ordering
+  for a row/composite value is not a documented cross-version guarantee,
+  and this hash is meant to be independently reverifiable indefinitely,
+  not just compared within one transaction; see
+  `alembic/versions/0011_ledger_hash_chain.py` and
   `tests/test_ledger_hash_chain.py` (including a real two-connection
-  concurrency test) for the reasoning and the exact hash construction.
+  concurrency test and a negative control proving an earlier version of
+  this trigger missed `id`/`created_at` tampering) for the full
+  reasoning and hash construction.
 - `audit_log` — append-only for the same reason as the ledger (not
   hash-chained; the doc that scoped this asked for tamper-evidence on
   "the core ledger table" specifically).
