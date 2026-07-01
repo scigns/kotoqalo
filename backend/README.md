@@ -66,8 +66,15 @@ have no supported cleanup path by design.
   schema owner. A deferred constraint trigger rejects any transaction
   whose entries don't balance per currency. Corrections are new
   transactions referencing the original via
-  `reversal_of_transaction_id`.
-- `audit_log` — append-only for the same reason as the ledger.
+  `reversal_of_transaction_id`. `ledger_entries` is additionally
+  hash-chained (`previous_hash`/`row_hash`, SHA-256 over each row's
+  plaintext fields) so tampering is detectable by recomputing the chain
+  independently of the live database — see
+  `alembic/versions/0011_ledger_hash_chain.py` and
+  `tests/test_ledger_hash_chain.py` for the exact hash construction.
+- `audit_log` — append-only for the same reason as the ledger (not
+  hash-chained; the doc that scoped this asked for tamper-evidence on
+  "the core ledger table" specifically).
 
 See `alembic/versions/` for the full DDL; each migration's docstring/SQL
 comments explain the reasoning inline.
