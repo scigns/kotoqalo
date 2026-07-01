@@ -135,6 +135,46 @@ def test_bookkeeper_cannot_grant_roles(client, db, rsa_keypair):
     assert response.status_code == 403
 
 
+def test_bookkeeper_cannot_revoke_roles(client, db, rsa_keypair):
+    private_key, _ = rsa_keypair
+    _, bookkeeper_subject = _create_user_with_roles(db, "bookkeeper")
+    target_id, _ = _create_user_with_roles(db, "read_only_auditor")
+    token = _make_token(private_key, bookkeeper_subject)
+
+    response = client.delete(
+        f"/admin/users/{target_id}/roles/read_only_auditor",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_read_only_auditor_cannot_grant_roles(client, db, rsa_keypair):
+    private_key, _ = rsa_keypair
+    _, auditor_subject = _create_user_with_roles(db, "read_only_auditor")
+    target_id, _ = _create_user_with_roles(db)
+    token = _make_token(private_key, auditor_subject)
+
+    response = client.post(
+        f"/admin/users/{target_id}/roles",
+        json={"role": "bookkeeper"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_read_only_auditor_cannot_revoke_roles(client, db, rsa_keypair):
+    private_key, _ = rsa_keypair
+    _, auditor_subject = _create_user_with_roles(db, "read_only_auditor")
+    target_id, _ = _create_user_with_roles(db, "bookkeeper")
+    token = _make_token(private_key, auditor_subject)
+
+    response = client.delete(
+        f"/admin/users/{target_id}/roles/bookkeeper",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
 def test_owner_admin_can_grant_and_revoke_roles(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, owner_subject = _create_user_with_roles(db, "owner_admin")
