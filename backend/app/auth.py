@@ -1,3 +1,4 @@
+import logging
 import time
 from dataclasses import dataclass
 from typing import FrozenSet
@@ -10,6 +11,8 @@ from jwt.algorithms import RSAAlgorithm
 
 from app.config import Settings, get_settings
 from app.db import get_db
+
+logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer(auto_error=True)
 
@@ -40,6 +43,11 @@ class JWKSClient:
         self._cached_at = time.monotonic()
 
     def get_signing_key(self, kid: str):
+        # No lock around _refresh(): concurrent requests racing a cache
+        # miss/expiry can each independently re-fetch the JWKS (a
+        # thundering-herd of a handful of redundant HTTPS calls to
+        # Auth0), considered and deliberately deferred as low-priority at
+        # this scale rather than adding locking complexity now.
         if not self._keys_by_kid or time.monotonic() - self._cached_at > self._cache_ttl:
             self._refresh()
         if kid not in self._keys_by_kid:
@@ -103,9 +111,18 @@ def decode_token(
             algorithms=["RS256"],
             audience=settings.auth0_audience,
             issuer=f"https://{settings.auth0_domain}/",
+            # Small allowance for clock skew between this server and the
+            # client/token issuer -- without it, a token that's still
+            # genuinely valid can 401 right at the expiry boundary purely
+            # because the two clocks disagree by a few seconds.
+            leeway=30,
         )
     except jwt.InvalidTokenError as exc:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
+        # PyJWT's exception text can include claim values/internals; log
+        # it server-side for debugging but never return it to the
+        # client, which only needs to know the token was rejected.
+        logger.info("rejected bearer token: %s", exc)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token") from exc
 
     return claims
 

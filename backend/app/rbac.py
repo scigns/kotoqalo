@@ -9,6 +9,7 @@ def require_role(*allowed_roles: str):
     """FastAPI dependency factory: 403s unless the caller holds at least
     one of the given roles. Roles come from user_roles (non-revoked only,
     see app/auth.py), never from a client-supplied claim."""
+    assert set(allowed_roles) <= set(ALL_ROLES), f"unknown role in {allowed_roles}"
 
     def _check(user: AuthenticatedUser = Depends(get_current_user)) -> AuthenticatedUser:
         if not (user.roles & set(allowed_roles)):

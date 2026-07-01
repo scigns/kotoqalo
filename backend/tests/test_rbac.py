@@ -8,6 +8,7 @@ signature check, audience/issuer check) runs unmodified via
 StaticJWKSClient, only the *source* of signing keys is swapped.
 """
 
+import time
 import uuid
 
 import jwt
@@ -264,6 +265,44 @@ def test_token_signed_by_wrong_key_is_rejected(client, db):
 
     response = client.get("/me", headers={"Authorization": f"Bearer {forged_token}"})
     assert response.status_code == 401
+    # The response must not leak PyJWT's internal exception text (which
+    # can include claim values/algorithm details) -- just a generic
+    # rejection, with the detail logged server-side instead.
+    assert response.json() == {"detail": "invalid token"}
+
+
+def test_token_expired_within_leeway_is_still_accepted(client, db, rsa_keypair):
+    """A small clock-skew allowance (leeway) must not reject a token that
+    expired only a few seconds ago by this server's clock, since the
+    issuer's clock may be slightly ahead."""
+    private_key, _ = rsa_keypair
+    _, subject = _create_user_with_roles(db, "owner_admin")
+    now = int(time.time())
+    token = jwt.encode(
+        {"sub": subject, "aud": TEST_AUDIENCE, "iss": f"https://{TEST_DOMAIN}/", "exp": now - 10},
+        private_key,
+        algorithm="RS256",
+        headers={"kid": TEST_KID},
+    )
+
+    response = client.get("/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+
+
+def test_token_expired_beyond_leeway_is_rejected(client, db, rsa_keypair):
+    private_key, _ = rsa_keypair
+    _, subject = _create_user_with_roles(db, "owner_admin")
+    now = int(time.time())
+    token = jwt.encode(
+        {"sub": subject, "aud": TEST_AUDIENCE, "iss": f"https://{TEST_DOMAIN}/", "exp": now - 120},
+        private_key,
+        algorithm="RS256",
+        headers={"kid": TEST_KID},
+    )
+
+    response = client.get("/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+    assert response.json() == {"detail": "invalid token"}
 
 
 class _BrokenJWKSClient:
