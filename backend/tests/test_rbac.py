@@ -15,7 +15,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 
-from app.auth import StaticJWKSClient, get_jwks_client
+from app.auth import JWKSUnavailableError, StaticJWKSClient, get_jwks_client
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.main import app
@@ -202,6 +202,45 @@ def test_owner_admin_can_grant_and_revoke_roles(client, db, rsa_keypair):
     assert cur.fetchone()[0] is not None
 
 
+def test_grant_role_rejects_malformed_user_id_with_422_not_500(client, db, rsa_keypair):
+    private_key, _ = rsa_keypair
+    _, owner_subject = _create_user_with_roles(db, "owner_admin")
+    token = _make_token(private_key, owner_subject)
+
+    response = client.post(
+        "/admin/users/not-a-uuid/roles",
+        json={"role": "bookkeeper"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_revoke_role_rejects_invalid_role_name_with_422_not_500(client, db, rsa_keypair):
+    private_key, _ = rsa_keypair
+    _, owner_subject = _create_user_with_roles(db, "owner_admin")
+    target_id, _ = _create_user_with_roles(db)
+    token = _make_token(private_key, owner_subject)
+
+    response = client.delete(
+        f"/admin/users/{target_id}/roles/not-a-real-role",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_grant_role_for_nonexistent_user_is_404_not_500(client, db, rsa_keypair):
+    private_key, _ = rsa_keypair
+    _, owner_subject = _create_user_with_roles(db, "owner_admin")
+    token = _make_token(private_key, owner_subject)
+
+    response = client.post(
+        f"/admin/users/{uuid.uuid4()}/roles",
+        json={"role": "bookkeeper"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 404
+
+
 def test_token_for_unknown_local_account_is_rejected(client, rsa_keypair):
     private_key, _ = rsa_keypair
     token = _make_token(private_key, "test|no-such-user")
@@ -225,3 +264,24 @@ def test_token_signed_by_wrong_key_is_rejected(client, db):
 
     response = client.get("/me", headers={"Authorization": f"Bearer {forged_token}"})
     assert response.status_code == 401
+
+
+class _BrokenJWKSClient:
+    """Simulates Auth0's JWKS endpoint being unreachable -- get_signing_key
+    always raises JWKSUnavailableError, the same contract the real
+    JWKSClient uses when httpx.get()/response.raise_for_status() fails."""
+
+    def get_signing_key(self, kid):
+        raise JWKSUnavailableError("simulated Auth0 outage")
+
+
+def test_jwks_outage_is_503_not_500(client, rsa_keypair):
+    """A valid, well-formed token must not turn into an unhandled 500 just
+    because the JWKS source is temporarily unreachable -- that's a
+    dependency-availability problem, not proof the token is invalid."""
+    private_key, _ = rsa_keypair
+    app.dependency_overrides[get_jwks_client] = lambda: _BrokenJWKSClient()
+
+    token = _make_token(private_key, "test|whoever")
+    response = client.get("/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 503

@@ -76,20 +76,21 @@ def upgrade() -> None:
         -- administrative fields like pdf_object_key/due_date. This keeps
         -- an issued tax invoice trustworthy without making the whole row
         -- append-only, since drafts genuinely need editing.
+        --
+        -- Deliberately fail-closed: MUTABLE_FIELDS names the columns that
+        -- stay editable post-issuance, and everything else is frozen by
+        -- comparing the whole row (via to_jsonb) minus those fields. A
+        -- future migration that adds a new financial column to invoices
+        -- is automatically frozen by this trigger with no code change
+        -- needed here -- the opposite of enumerating "frozen" columns by
+        -- name, which would leave a forgotten new column silently
+        -- mutable.
         CREATE FUNCTION guard_invoice_financial_fields() RETURNS trigger AS $$
+        DECLARE
+            mutable_fields CONSTANT text[] := ARRAY['status', 'issued_at', 'due_date', 'pdf_object_key', 'updated_by', 'updated_at'];
         BEGIN
             IF OLD.status <> 'draft' THEN
-                IF NEW.contract_id     IS DISTINCT FROM OLD.contract_id
-                   OR NEW.milestone_id IS DISTINCT FROM OLD.milestone_id
-                   OR NEW.client_id    IS DISTINCT FROM OLD.client_id
-                   OR NEW.currency_code IS DISTINCT FROM OLD.currency_code
-                   OR NEW.subtotal_amount IS DISTINCT FROM OLD.subtotal_amount
-                   OR NEW.tax_amount      IS DISTINCT FROM OLD.tax_amount
-                   OR NEW.total_amount    IS DISTINCT FROM OLD.total_amount
-                   OR NEW.invoice_number  IS DISTINCT FROM OLD.invoice_number
-                   OR NEW.invoice_year    IS DISTINCT FROM OLD.invoice_year
-                   OR NEW.invoice_seq     IS DISTINCT FROM OLD.invoice_seq
-                THEN
+                IF (to_jsonb(OLD) - mutable_fields) IS DISTINCT FROM (to_jsonb(NEW) - mutable_fields) THEN
                     RAISE EXCEPTION
                         'invoice % has status %: financial fields are immutable once issued; post a correction instead',
                         OLD.id, OLD.status

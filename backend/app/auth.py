@@ -14,6 +14,12 @@ from app.db import get_db
 bearer_scheme = HTTPBearer(auto_error=True)
 
 
+class JWKSUnavailableError(Exception):
+    """The JWKS source (Auth0, or a test double) could not be reached or
+    parsed. Distinct from an unrecognized kid (KeyError): this means we
+    don't yet know whether the token is valid, not that it's invalid."""
+
+
 class JWKSClient:
     """Fetches and caches an Auth0 tenant's RS256 signing keys by `kid`."""
 
@@ -24,10 +30,13 @@ class JWKSClient:
         self._keys_by_kid: dict = {}
 
     def _refresh(self) -> None:
-        response = httpx.get(self._jwks_url, timeout=5.0)
-        response.raise_for_status()
-        jwks = response.json()
-        self._keys_by_kid = {key["kid"]: RSAAlgorithm.from_jwk(key) for key in jwks["keys"]}
+        try:
+            response = httpx.get(self._jwks_url, timeout=5.0)
+            response.raise_for_status()
+            jwks = response.json()
+            self._keys_by_kid = {key["kid"]: RSAAlgorithm.from_jwk(key) for key in jwks["keys"]}
+        except (httpx.HTTPError, KeyError, ValueError) as exc:
+            raise JWKSUnavailableError(f"could not refresh JWKS from {self._jwks_url}") from exc
         self._cached_at = time.monotonic()
 
     def get_signing_key(self, kid: str):
@@ -48,7 +57,7 @@ class StaticJWKSClient(JWKSClient):
         self._cached_at = time.monotonic()
 
     def _refresh(self) -> None:
-        raise RuntimeError("StaticJWKSClient has no remote source to refresh from")
+        raise JWKSUnavailableError("StaticJWKSClient has no remote source to refresh from")
 
 
 _jwks_client: JWKSClient | None = None
@@ -80,6 +89,12 @@ def decode_token(
         signing_key = jwks_client.get_signing_key(kid)
     except KeyError as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "unknown signing key") from exc
+    except JWKSUnavailableError as exc:
+        # Distinct from "unknown signing key": we couldn't reach/parse the
+        # JWKS source at all, so we don't know if the token is valid --
+        # a 503 tells the client to retry, rather than a 401 implying the
+        # token itself was rejected.
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "auth provider unreachable") from exc
 
     try:
         claims = jwt.decode(

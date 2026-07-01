@@ -59,8 +59,13 @@ have no supported cleanup path by design.
   Contact PII on `clients` is stored as ciphertext columns
   (`*_encrypted`), to be populated by application-layer envelope
   encryption in Phase 3.
-- `invoices` — mutable while `status = 'draft'`; a trigger freezes the
-  financial fields (amounts, currency, invoice number) once issued.
+- `invoices` — mutable while `status = 'draft'`; a trigger freezes
+  financial fields once issued. The freeze is fail-closed: it compares
+  the whole row (via `to_jsonb`) minus an explicit allowlist of fields
+  that stay mutable (`status`, `issued_at`, `due_date`, `pdf_object_key`,
+  `updated_by`, `updated_at`), rather than enumerating which columns to
+  freeze — a future migration adding a new financial column is frozen
+  automatically, with no matching trigger update required.
 - `ledger_transactions` / `ledger_entries` — append-only, double-entry.
   No `UPDATE`/`DELETE` grant exists for `app_rw`, and a trigger blocks
   those operations (plus `TRUNCATE`) for every role, including the
@@ -69,13 +74,21 @@ have no supported cleanup path by design.
   transactions referencing the original via
   `reversal_of_transaction_id`. `ledger_entries` is additionally
   hash-chained (`previous_hash`/`row_hash`, SHA-256 over each row's
-  plaintext fields) so tampering is detectable by recomputing the chain
-  independently of the live database — see
-  `alembic/versions/0011_ledger_hash_chain.py` and
-  `tests/test_ledger_hash_chain.py` for the exact hash construction.
+  plaintext fields) via a dedicated single-row `ledger_chain_tip` table
+  that the chaining trigger locks with `SELECT ... FOR UPDATE` — this
+  (not a "last row of `ledger_entries`" lookup) is what makes two
+  concurrent first-inserts serialize instead of both chaining from
+  genesis; see `alembic/versions/0011_ledger_hash_chain.py` and
+  `tests/test_ledger_hash_chain.py` (including a real two-connection
+  concurrency test) for the reasoning and the exact hash construction.
 - `audit_log` — append-only for the same reason as the ledger (not
   hash-chained; the doc that scoped this asked for tamper-evidence on
   "the core ledger table" specifically).
+- `tests/test_append_only_invariant.py` cross-checks
+  `APPEND_ONLY_TABLES` against the database's actual privilege/trigger
+  state (no `UPDATE`/`DELETE` grant + both guard triggers present) —
+  update that list when adding a new append-only table so it's covered
+  automatically instead of needing a bespoke test written per table.
 
 See `alembic/versions/` for the full DDL; each migration's docstring/SQL
 comments explain the reasoning inline.
@@ -105,7 +118,14 @@ application itself is compromised), not a stand-in for human RBAC.
 `app/main.py` currently exposes only the minimal surface needed to prove
 the RBAC boundary (`POST /clients` for owner_admin/bookkeeper,
 `POST`/`DELETE /admin/users/{id}/roles` for owner_admin only) — full
-contract/invoice CRUD and audit-logging middleware are Phase 3.
+contract/invoice CRUD and audit-logging middleware are Phase 3. Path
+parameters like `user_id`/`role` are typed (`uuid.UUID` /
+`Literal[...]`) so malformed input is a 422 from FastAPI's own
+validation, not an unhandled 500 from Postgres rejecting a bad UUID/enum
+literal; a non-existent (but well-formed) `user_id` is a 404. A JWKS
+fetch failure (Auth0 unreachable, or a `kid` that can't be resolved
+because the refresh itself failed) is a 503, distinct from a genuinely
+unrecognized `kid` (401) — see `JWKSUnavailableError` in `app/auth.py`.
 
 **Not yet wired to a real tenant.** `AUTH0_DOMAIN`/`AUTH0_AUDIENCE` in
 `.env.example` are placeholders; `tests/test_rbac.py` proves the
