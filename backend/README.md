@@ -134,3 +134,11 @@ throwaway RSA keypair and substituting `StaticJWKSClient` for the real
 JWKS fetch (see `app/auth.py`) — no live Auth0 credentials are required
 to run the test suite. Swapping in a real tenant only requires setting
 the two env vars; no code changes.
+
+## Known verification gaps
+
+- JWKSClient's live httpx fetch against Auth0's JWKS endpoint has not
+  been executed end-to-end in this dev environment due to sandbox
+  network restrictions; verify this specific fetch succeeds once
+  deployed to any environment with real egress, before this handles
+  production traffic.
