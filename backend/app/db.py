@@ -20,8 +20,22 @@ def get_db():
     # scheme (for Alembic/env.py consistency); native psycopg.connect()
     # only understands plain postgresql://.
     url = settings.app_database_url.replace("postgresql+psycopg://", "postgresql://")
-    conn = psycopg.connect(url, autocommit=True)
+    # autocommit=False, with an explicit commit only on a fully successful
+    # request: ledger postings need several INSERTs (a ledger_transaction
+    # header plus multiple balanced ledger_entries) to land in one atomic
+    # unit, and the deferred balance-check constraint trigger only fires
+    # at COMMIT -- under autocommit=True, each statement is its own
+    # implicit transaction, so a single (individually unbalanced) entry
+    # would be checked and rejected before the next entry in the same
+    # posting was even inserted. This also makes every other handler's
+    # writes atomic against a mid-request exception, which autocommit=True
+    # never was.
+    conn = psycopg.connect(url, autocommit=False)
     try:
         yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()

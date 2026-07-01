@@ -1,10 +1,22 @@
 import os
 from pathlib import Path
 
+import jwt
 import psycopg
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
+from fastapi.testclient import TestClient
+
+from app.auth import StaticJWKSClient, get_jwks_client
+from app.config import Settings, get_settings
+from app.db import get_db
+from app.main import app
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
+
+TEST_KID = "test-key-1"
+TEST_AUDIENCE = "https://dreamers-media-pacific-api.test"
+TEST_DOMAIN = "dreamers-media-pacific.test.auth0.com"
 
 
 def _load_dotenv(path: Path) -> None:
@@ -115,3 +127,45 @@ def expect_denied():
             raise AssertionError(f"expected statement to be denied, but it succeeded: {sql}")
 
     return _run
+
+
+@pytest.fixture(scope="module")
+def rsa_keypair():
+    """A throwaway RSA keypair standing in for Auth0's JWKS -- shared by
+    every test module that needs a FastAPI TestClient with a real
+    (verified, not mocked-out) auth path."""
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    return private_key, private_key.public_key()
+
+
+@pytest.fixture
+def client(db, rsa_keypair):
+    """A FastAPI TestClient wired to run the real app/auth.py verification
+    path against the shared test RSA key, and to the same `db`
+    connection/transaction as everything else (already SET ROLE'd to
+    app_rw here, matching how the real app always connects)."""
+    _, public_key = rsa_keypair
+    db.cursor().execute("SET ROLE app_rw")
+
+    def _get_db_override():
+        yield db
+
+    app.dependency_overrides[get_db] = _get_db_override
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        app_database_url="unused-in-tests", auth0_domain=TEST_DOMAIN, auth0_audience=TEST_AUDIENCE
+    )
+    app.dependency_overrides[get_jwks_client] = lambda: StaticJWKSClient({TEST_KID: public_key})
+
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
+
+
+def make_token(private_key, subject: str) -> str:
+    return jwt.encode(
+        {"sub": subject, "aud": TEST_AUDIENCE, "iss": f"https://{TEST_DOMAIN}/"},
+        private_key,
+        algorithm="RS256",
+        headers={"kid": TEST_KID},
+    )
