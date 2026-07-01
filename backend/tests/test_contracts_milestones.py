@@ -5,31 +5,15 @@ wired into every mutating endpoint, including the Phase 2 ones
 
 import json
 
-from conftest import make_token
+from conftest import create_user_with_role
 
 
 def _owner_token(db, rsa_keypair, subject="test|contracts-owner"):
-    private_key, _ = rsa_keypair
-    cur = db.cursor()
-    cur.execute(
-        "INSERT INTO users (external_auth_subject, email, full_name) VALUES (%s, %s, 'Owner') RETURNING id",
-        (subject, f"{subject.replace('|', '-')}@example.test"),
-    )
-    user_id = cur.fetchone()[0]
-    cur.execute("INSERT INTO user_roles (user_id, role, granted_by) VALUES (%s, 'owner_admin', %s)", (user_id, user_id))
-    return str(user_id), make_token(private_key, subject)
+    return create_user_with_role(db, rsa_keypair, "owner_admin", subject)
 
 
 def _auditor_token(db, rsa_keypair, subject="test|contracts-auditor"):
-    private_key, _ = rsa_keypair
-    cur = db.cursor()
-    cur.execute(
-        "INSERT INTO users (external_auth_subject, email, full_name) VALUES (%s, %s, 'Auditor') RETURNING id",
-        (subject, f"{subject.replace('|', '-')}@example.test"),
-    )
-    user_id = cur.fetchone()[0]
-    cur.execute("INSERT INTO user_roles (user_id, role, granted_by) VALUES (%s, 'read_only_auditor', %s)", (user_id, user_id))
-    return str(user_id), make_token(private_key, subject)
+    return create_user_with_role(db, rsa_keypair, "read_only_auditor", subject)
 
 
 def _create_client_via_api(client, token):
@@ -285,14 +269,7 @@ def test_bookkeeper_can_manage_contracts_and_milestones(client, db, rsa_keypair)
     """bookkeeper should have the same write access as owner_admin for
     ordinary contract/milestone CRUD -- only access-control settings
     (role grants) are owner_admin-only."""
-    private_key, _ = rsa_keypair
-    cur = db.cursor()
-    cur.execute(
-        "INSERT INTO users (external_auth_subject, email, full_name) VALUES ('test|bk', 'bk@example.test', 'BK') RETURNING id"
-    )
-    bk_id = cur.fetchone()[0]
-    cur.execute("INSERT INTO user_roles (user_id, role, granted_by) VALUES (%s, 'bookkeeper', %s)", (bk_id, bk_id))
-    bk_token = make_token(private_key, "test|bk")
+    _, bk_token = create_user_with_role(db, rsa_keypair, "bookkeeper", "test|bk")
 
     client_id = _create_client_via_api(client, bk_token)
     contract_response = client.post(
@@ -301,3 +278,81 @@ def test_bookkeeper_can_manage_contracts_and_milestones(client, db, rsa_keypair)
         headers={"Authorization": f"Bearer {bk_token}"},
     )
     assert contract_response.status_code == 201
+
+
+def test_create_contract_with_malformed_client_id_is_422_not_500(client, db, rsa_keypair):
+    """ContractCreate used to type client_id as plain str, so a malformed
+    id reached Postgres as a raw string and surfaced as an unhandled 500
+    -- the same class of bug already fixed for grant_role/revoke_role in
+    Phase 2."""
+    _, token = _owner_token(db, rsa_keypair)
+    response = client.post(
+        "/contracts",
+        json={"client_id": "not-a-uuid", "title": "Should 422", "currency_code": "AUD", "total_value": "10.00"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_create_contract_with_negative_total_value_is_422_not_500(client, db, rsa_keypair):
+    """total_value had no Pydantic-level non-negativity check, so a
+    negative value reached Postgres's CHECK(total_value >= 0) constraint
+    and surfaced as an unhandled 500."""
+    _, token = _owner_token(db, rsa_keypair)
+    client_id = _create_client_via_api(client, token)
+    response = client.post(
+        "/contracts",
+        json={"client_id": client_id, "title": "Should 422", "currency_code": "AUD", "total_value": "-1.00"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_create_milestone_with_malformed_contract_id_is_422_not_500(client, db, rsa_keypair):
+    _, token = _owner_token(db, rsa_keypair)
+    response = client.post(
+        "/milestones",
+        json={"contract_id": "not-a-uuid", "title": "Should 422", "amount": "1.00", "currency_code": "AUD"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_create_milestone_with_negative_amount_is_422_not_500(client, db, rsa_keypair):
+    _, token = _owner_token(db, rsa_keypair)
+    client_id = _create_client_via_api(client, token)
+    contract_id = client.post(
+        "/contracts",
+        json={"client_id": client_id, "title": "Contract", "currency_code": "AUD", "total_value": "500.00"},
+        headers={"Authorization": f"Bearer {token}"},
+    ).json()["id"]
+    response = client.post(
+        "/milestones",
+        json={"contract_id": contract_id, "title": "Should 422", "amount": "-1.00", "currency_code": "AUD"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_void_invoice_sets_updated_by(client, db, rsa_keypair):
+    """void_invoice used to hand-roll its UPDATE instead of going through
+    apply_partial_update, silently leaving updated_by unset."""
+    user_id, token = _owner_token(db, rsa_keypair)
+    client_id = _create_client_via_api(client, token)
+    contract_id = client.post(
+        "/contracts",
+        json={"client_id": client_id, "title": "Contract", "currency_code": "AUD", "total_value": "10.00"},
+        headers={"Authorization": f"Bearer {token}"},
+    ).json()["id"]
+    invoice_id = client.post(
+        "/invoices",
+        json={"contract_id": contract_id, "client_id": client_id, "currency_code": "AUD", "subtotal_amount": "10.00"},
+        headers={"Authorization": f"Bearer {token}"},
+    ).json()["id"]
+
+    void_response = client.post(f"/invoices/{invoice_id}/void", headers={"Authorization": f"Bearer {token}"})
+    assert void_response.status_code == 200
+
+    cur = db.cursor()
+    cur.execute("SELECT updated_by FROM invoices WHERE id = %s", (invoice_id,))
+    assert str(cur.fetchone()[0]) == user_id

@@ -3,19 +3,29 @@ and the ledger posting triggered by issuance -- through the chain-tip
 table, not a "last row" lookup (see 0011_ledger_hash_chain.py).
 """
 
-from conftest import make_token
+import base64
+import re
+import zlib
+
+from conftest import create_user_with_role
+
+
+def _extract_pdf_text(pdf_bytes: bytes) -> str:
+    """generate_invoice_pdf's reportlab canvas defaults to
+    ASCII85Decode+FlateDecode content streams, so the drawn text isn't a
+    readable substring of the raw PDF bytes -- decode the content
+    stream(s) and pull out the literal strings passed to the Tj text-show
+    operator, so tests can assert on what the PDF actually renders
+    without a full PDF-parsing dependency."""
+    content = b"".join(
+        zlib.decompress(base64.a85decode(match.group(1)))
+        for match in re.finditer(rb"stream\r?\n(.*?)~>endstream", pdf_bytes, re.DOTALL)
+    )
+    return " ".join(m.decode("latin-1") for m in re.findall(rb"\(((?:[^()\\]|\\.)*)\)\s*Tj", content))
 
 
 def _owner(db, rsa_keypair, subject="test|invoice-owner"):
-    private_key, _ = rsa_keypair
-    cur = db.cursor()
-    cur.execute(
-        "INSERT INTO users (external_auth_subject, email, full_name) VALUES (%s, %s, 'Owner') RETURNING id",
-        (subject, f"{subject.replace('|', '-')}@example.test"),
-    )
-    user_id = cur.fetchone()[0]
-    cur.execute("INSERT INTO user_roles (user_id, role, granted_by) VALUES (%s, 'owner_admin', %s)", (user_id, user_id))
-    return str(user_id), make_token(private_key, subject)
+    return create_user_with_role(db, rsa_keypair, "owner_admin", subject)
 
 
 def _set_up_contract(client, token, total_value="5000.00"):
@@ -81,6 +91,13 @@ def test_issuing_invoice_generates_pdf_and_posts_ledger(client, db, rsa_keypair)
     assert pdf_response.status_code == 200
     assert pdf_response.headers["content-type"] == "application/pdf"
     assert pdf_response.content[:4] == b"%PDF"
+
+    # The PDF must reflect the invoice's real, post-issuance state -- it
+    # used to be built from the pre-update snapshot, so every issued
+    # invoice's stored PDF permanently read "DRAFT -- not yet issued".
+    pdf_text = _extract_pdf_text(pdf_response.content)
+    assert "DRAFT -- not yet issued" not in pdf_text
+    assert f"Issued: {issued['issued_at']}" in pdf_text
 
     cur = db.cursor()
     cur.execute(
@@ -220,3 +237,202 @@ def test_create_invoice_with_milestone_from_a_different_contract_is_rejected(cli
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 400
+
+
+def test_create_invoice_with_client_id_not_matching_the_contracts_client_is_rejected(client, db, rsa_keypair):
+    """contract_id determines which client an invoice is actually for
+    (contracts.client_id) -- client_id used to only be checked for
+    existence, so any other real client's id would silently produce an
+    invoice billing the wrong client for this contract."""
+    _, token = _owner(db, rsa_keypair)
+    client_id, contract_id = _set_up_contract(client, token)
+    other_client_id, _ = _set_up_contract(client, token)
+
+    response = client.post(
+        "/invoices",
+        json={
+            "contract_id": contract_id, "client_id": other_client_id,
+            "currency_code": "AUD", "subtotal_amount": "100.00",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 400
+
+
+def test_create_invoice_with_malformed_contract_id_is_422_not_500(client, db, rsa_keypair):
+    """InvoiceCreate used to type contract_id/client_id/milestone_id as
+    plain str, so a malformed id reached Postgres as a raw string and
+    surfaced as an unhandled 500 instead of a clean validation error --
+    the same class of bug already fixed for grant_role/revoke_role in
+    Phase 2."""
+    _, token = _owner(db, rsa_keypair)
+    response = client.post(
+        "/invoices",
+        json={
+            "contract_id": "not-a-uuid", "client_id": "not-a-uuid",
+            "currency_code": "AUD", "subtotal_amount": "100.00",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_create_invoice_with_negative_subtotal_is_422_not_500(client, db, rsa_keypair):
+    """subtotal_amount/tax_amount had no Pydantic-level non-negativity
+    check, so a negative value reached Postgres's CHECK(subtotal_amount
+    >= 0) constraint and surfaced as an unhandled 500."""
+    _, token = _owner(db, rsa_keypair)
+    client_id, contract_id = _set_up_contract(client, token)
+    response = client.post(
+        "/invoices",
+        json={
+            "contract_id": contract_id, "client_id": client_id,
+            "currency_code": "AUD", "subtotal_amount": "-100.00",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_issuing_an_invoice_sets_updated_by(client, db, rsa_keypair):
+    """issue_invoice used to hand-roll its UPDATE instead of going
+    through apply_partial_update, silently leaving updated_by unset --
+    unlike every contract/milestone mutation."""
+    user_id, token = _owner(db, rsa_keypair)
+    client_id, contract_id = _set_up_contract(client, token)
+    invoice_id = client.post(
+        "/invoices",
+        json={"contract_id": contract_id, "client_id": client_id, "currency_code": "AUD", "subtotal_amount": "50.00"},
+        headers={"Authorization": f"Bearer {token}"},
+    ).json()["id"]
+    client.post(f"/invoices/{invoice_id}/issue", headers={"Authorization": f"Bearer {token}"})
+
+    cur = db.cursor()
+    cur.execute("SELECT updated_by FROM invoices WHERE id = %s", (invoice_id,))
+    assert str(cur.fetchone()[0]) == user_id
+
+
+def test_two_connections_serialize_on_issuing_the_same_invoice(rsa_keypair):
+    """issue_invoice used to read an invoice's status with a plain
+    SELECT (no locking) before mutating it, so two concurrent issue
+    requests for the same draft invoice could both read status='draft'
+    before either commits and both post a ledger entry. FOR UPDATE on
+    the invoice row should serialize this, the same way
+    0011_ledger_hash_chain.py's chain-tip lock serializes concurrent
+    first-inserts (see test_ledger_hash_chain.py's analogous test).
+
+    If this test's HTTP request completes, it really issues the fixture
+    invoice and posts a real ledger transaction through it -- like
+    test_ledger_atomicity.py's fixture user, that can never be cleaned up
+    afterward (ledger rows are append-only, and the invoice/contract/
+    client/user rows referencing/referenced-by it can't be deleted
+    either). So this uses fixed, idempotent fixture rows (upserted, never
+    deleted) instead of fresh ones per run.
+    """
+    import os
+    import threading
+
+    import psycopg
+    from fastapi.testclient import TestClient
+
+    from app.auth import StaticJWKSClient, get_jwks_client
+    from app.config import Settings, get_settings
+    from app.main import app
+    from conftest import TEST_AUDIENCE, TEST_DOMAIN, TEST_KID, make_token
+
+    private_key, public_key = rsa_keypair
+    url = os.environ["MIGRATOR_DATABASE_URL"].replace("postgresql+psycopg://", "postgresql://")
+
+    setup_conn = psycopg.connect(url, autocommit=True)
+    cur = setup_conn.cursor()
+    subject = "test|concurrent-issue-owner-fixture"
+    cur.execute(
+        """
+        INSERT INTO users (external_auth_subject, email, full_name)
+        VALUES (%s, %s, 'Concurrent Issue Owner (permanent test fixture)')
+        ON CONFLICT (external_auth_subject) DO NOTHING
+        """,
+        (subject, "concurrent-issue-owner-fixture@example.test"),
+    )
+    cur.execute("SELECT id FROM users WHERE external_auth_subject = %s", (subject,))
+    user_id = cur.fetchone()[0]
+    cur.execute(
+        "INSERT INTO user_roles (user_id, role, granted_by) VALUES (%s, 'owner_admin', %s) ON CONFLICT DO NOTHING",
+        (user_id, user_id),
+    )
+
+    cur.execute("SELECT id FROM clients WHERE display_name = 'Concurrent Issue Fixture Client'")
+    row = cur.fetchone()
+    if row is None:
+        cur.execute(
+            "INSERT INTO clients (display_name, country_code, created_by) "
+            "VALUES ('Concurrent Issue Fixture Client', 'AU', %s) RETURNING id",
+            (user_id,),
+        )
+        client_id = cur.fetchone()[0]
+    else:
+        client_id = row[0]
+
+    cur.execute("SELECT id FROM contracts WHERE title = 'Concurrent Issue Fixture Contract'")
+    row = cur.fetchone()
+    if row is None:
+        cur.execute(
+            "INSERT INTO contracts (client_id, title, currency_code, total_value, created_by) "
+            "VALUES (%s, 'Concurrent Issue Fixture Contract', 'AUD', 100.00, %s) RETURNING id",
+            (client_id, user_id),
+        )
+        contract_id = cur.fetchone()[0]
+    else:
+        contract_id = row[0]
+
+    cur.execute("SELECT id FROM invoices WHERE invoice_number = 'INV-LOCKTEST-000001'")
+    row = cur.fetchone()
+    if row is None:
+        cur.execute(
+            "INSERT INTO invoices (invoice_number, invoice_year, invoice_seq, contract_id, client_id, "
+            "currency_code, subtotal_amount, tax_amount, total_amount, created_by) "
+            "VALUES ('INV-LOCKTEST-000001', 2026, 999001, %s, %s, 'AUD', 100.00, 0, 100.00, %s) RETURNING id",
+            (contract_id, client_id, user_id),
+        )
+        invoice_id = cur.fetchone()[0]
+    else:
+        invoice_id = row[0]
+    setup_conn.close()
+
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        app_database_url=os.environ["APP_DATABASE_URL"], auth0_domain=TEST_DOMAIN, auth0_audience=TEST_AUDIENCE
+    )
+    app.dependency_overrides[get_jwks_client] = lambda: StaticJWKSClient({TEST_KID: public_key})
+    token = make_token(private_key, subject)
+    real_client = TestClient(app)
+
+    # Hold the invoice-row lock open on a raw connection -- controlling
+    # request-internal timing to hold the lock open mid-HTTP-request
+    # isn't something TestClient exposes, so this locks the row directly
+    # first, mirroring test_ledger_hash_chain.py's approach of proving
+    # the lock exists via a raw connection.
+    locking_conn = psycopg.connect(url, autocommit=False)
+    try:
+        locking_conn.cursor().execute("SET ROLE app_rw")
+        locking_conn.cursor().execute("SELECT 1 FROM invoices WHERE id = %s FOR UPDATE", (invoice_id,))
+
+        issue_done = threading.Event()
+
+        def _issue_via_http():
+            real_client.post(f"/invoices/{invoice_id}/issue", headers={"Authorization": f"Bearer {token}"})
+            issue_done.set()
+
+        thread = threading.Thread(target=_issue_via_http)
+        thread.start()
+        thread.join(timeout=1.0)
+        assert not issue_done.is_set(), (
+            "issuing the invoice completed without blocking on the row lock held by another connection -- "
+            "issue_invoice is not taking FOR UPDATE on the invoice row"
+        )
+
+        locking_conn.rollback()
+        thread.join(timeout=5.0)
+        assert issue_done.is_set(), "issue request never completed after the row lock was released"
+    finally:
+        app.dependency_overrides.clear()
+        locking_conn.close()

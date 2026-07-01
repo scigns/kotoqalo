@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,7 +19,7 @@ class Settings(BaseSettings):
     # implemented option today; "infisical" is the intended production
     # backend, stubbed until a real Infisical project/machine identity
     # exists.
-    key_provider: str = "ephemeral"
+    key_provider: Literal["ephemeral", "infisical"] = "ephemeral"
     infisical_host: str = ""
     infisical_project_id: str = ""
     infisical_environment: str = ""

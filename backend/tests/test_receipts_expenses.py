@@ -2,19 +2,11 @@
 invoice issuance, and receipts marking a linked invoice paid.
 """
 
-from conftest import make_token
+from conftest import create_user_with_role
 
 
 def _owner(db, rsa_keypair, subject="test|receipts-owner"):
-    private_key, _ = rsa_keypair
-    cur = db.cursor()
-    cur.execute(
-        "INSERT INTO users (external_auth_subject, email, full_name) VALUES (%s, %s, 'Owner') RETURNING id",
-        (subject, f"{subject.replace('|', '-')}@example.test"),
-    )
-    user_id = cur.fetchone()[0]
-    cur.execute("INSERT INTO user_roles (user_id, role, granted_by) VALUES (%s, 'owner_admin', %s)", (user_id, user_id))
-    return str(user_id), make_token(private_key, subject)
+    return create_user_with_role(db, rsa_keypair, "owner_admin", subject)
 
 
 def _issued_invoice(client, token, amount="1000.00"):
@@ -95,6 +87,81 @@ def test_receipt_against_draft_invoice_is_rejected(client, db, rsa_keypair):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 409
+
+
+def test_receipt_amount_not_matching_invoice_total_is_rejected(client, db, rsa_keypair):
+    """There's no partial-payment/balance tracking yet -- a receipt
+    against an invoice always marks it fully paid, so a trivial/partial
+    amount used to silently mark a mostly-unpaid invoice as paid."""
+    _, token = _owner(db, rsa_keypair)
+    client_id, invoice_id = _issued_invoice(client, token, amount="1000.00")
+
+    response = client.post(
+        "/receipts",
+        json={
+            "invoice_id": invoice_id, "client_id": client_id, "amount": "10.00",
+            "currency_code": "AUD", "description": "Partial payment", "received_date": "2026-07-01",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 400
+
+    invoice_response = client.get(f"/invoices/{invoice_id}", headers={"Authorization": f"Bearer {token}"})
+    assert invoice_response.json()["status"] == "issued"
+
+
+def test_receipt_currency_not_matching_invoice_currency_is_rejected(client, db, rsa_keypair):
+    _, token = _owner(db, rsa_keypair)
+    client_id, invoice_id = _issued_invoice(client, token, amount="1000.00")
+
+    response = client.post(
+        "/receipts",
+        json={
+            "invoice_id": invoice_id, "client_id": client_id, "amount": "1000.00",
+            "currency_code": "USD", "description": "Wrong currency", "received_date": "2026-07-01",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 400
+
+    invoice_response = client.get(f"/invoices/{invoice_id}", headers={"Authorization": f"Bearer {token}"})
+    assert invoice_response.json()["status"] == "issued"
+
+
+def test_receipt_marking_invoice_paid_sets_updated_by(client, db, rsa_keypair):
+    """create_receipt used to hand-roll its UPDATE instead of going
+    through apply_partial_update, silently leaving updated_by unset."""
+    user_id, token = _owner(db, rsa_keypair)
+    client_id, invoice_id = _issued_invoice(client, token, amount="1000.00")
+
+    client.post(
+        "/receipts",
+        json={
+            "invoice_id": invoice_id, "client_id": client_id, "amount": "1000.00",
+            "currency_code": "AUD", "description": "Payment received", "received_date": "2026-07-01",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    cur = db.cursor()
+    cur.execute("SELECT updated_by FROM invoices WHERE id = %s", (invoice_id,))
+    assert str(cur.fetchone()[0]) == user_id
+
+
+def test_receipt_with_malformed_client_id_is_422_not_500(client, db, rsa_keypair):
+    """ReceiptCreate used to type client_id/invoice_id as plain str, so a
+    malformed id reached Postgres as a raw string and surfaced as an
+    unhandled 500."""
+    _, token = _owner(db, rsa_keypair)
+    response = client.post(
+        "/receipts",
+        json={
+            "client_id": "not-a-uuid", "amount": "10.00", "currency_code": "AUD",
+            "description": "Should 422", "received_date": "2026-07-01",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
 
 
 def test_receipt_without_invoice_link_still_posts_ledger(client, db, rsa_keypair):

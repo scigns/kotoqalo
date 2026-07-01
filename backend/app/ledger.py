@@ -12,12 +12,12 @@ a unit.
 
 from collections import defaultdict
 from decimal import Decimal
-from typing import Optional, TypedDict
+from typing import Literal, Optional, TypedDict
 
 
 class LedgerEntryInput(TypedDict):
     account_code: str
-    direction: str  # "debit" | "credit"
+    direction: Literal["debit", "credit"]
     amount: Decimal
     currency_code: str
 

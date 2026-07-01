@@ -16,7 +16,6 @@ already used for AUTH0_DOMAIN/AUTH0_AUDIENCE.
 
 import os
 from abc import ABC, abstractmethod
-from functools import lru_cache
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import Depends

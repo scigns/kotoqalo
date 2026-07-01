@@ -5,7 +5,7 @@ module too; see the section breaks below.
 """
 
 import uuid
-from datetime import date as date_type
+from datetime import date as date_type, datetime, timezone
 from typing import Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
@@ -265,7 +265,7 @@ def create_contract(
         RETURNING id
         """,
         (
-            payload.client_id, payload.title, payload.description, payload.currency_code,
+            str(payload.client_id), payload.title, payload.description, payload.currency_code,
             payload.total_value, payload.start_date, payload.end_date, user.user_id,
         ),
     )
@@ -372,7 +372,7 @@ def create_milestone(
         RETURNING id
         """,
         (
-            payload.contract_id, payload.title, payload.description,
+            str(payload.contract_id), payload.title, payload.description,
             payload.amount, payload.currency_code, payload.due_date, user.user_id,
         ),
     )
@@ -477,12 +477,22 @@ def create_invoice(
     user: AuthenticatedUser = Depends(require_role("owner_admin", "bookkeeper")),
     db=Depends(get_db),
 ):
-    require_exists(db, "contracts", payload.contract_id, "no such contract")
-    require_exists(db, "clients", payload.client_id, "no such client")
+    cur = db.cursor()
+    cur.execute("SELECT client_id FROM contracts WHERE id = %s", (str(payload.contract_id),))
+    contract_row = cur.fetchone()
+    if contract_row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such contract")
+    if str(contract_row[0]) != str(payload.client_id):
+        # contracts.client_id is NOT NULL REFERENCES clients(id), so a
+        # contract match already guarantees the client exists -- a
+        # mismatched client_id (whether or not it independently exists)
+        # is always wrong, and would otherwise silently bill one client
+        # for another client's contract.
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "client_id does not match the contract's client")
+
     if payload.milestone_id is not None:
         require_exists(db, "milestones", payload.milestone_id, "no such milestone")
-        cur = db.cursor()
-        cur.execute("SELECT contract_id FROM milestones WHERE id = %s", (payload.milestone_id,))
+        cur.execute("SELECT contract_id FROM milestones WHERE id = %s", (str(payload.milestone_id),))
         if str(cur.fetchone()[0]) != str(payload.contract_id):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "milestone does not belong to the given contract")
 
@@ -490,7 +500,6 @@ def create_invoice(
     year = date_type.today().year
     invoice_number, invoice_seq = allocate_invoice_number(db, year)
 
-    cur = db.cursor()
     cur.execute(
         """
         INSERT INTO invoices (
@@ -501,9 +510,10 @@ def create_invoice(
         RETURNING id
         """,
         (
-            invoice_number, year, invoice_seq, payload.contract_id, payload.milestone_id, payload.client_id,
-            payload.currency_code, payload.subtotal_amount, payload.tax_amount, total_amount,
-            payload.due_date, user.user_id,
+            invoice_number, year, invoice_seq, str(payload.contract_id),
+            str(payload.milestone_id) if payload.milestone_id is not None else None,
+            str(payload.client_id), payload.currency_code, payload.subtotal_amount, payload.tax_amount,
+            total_amount, payload.due_date, user.user_id,
         ),
     )
     invoice_id = cur.fetchone()[0]
@@ -561,30 +571,26 @@ def issue_invoice(
     db=Depends(get_db),
     key_provider: KeyProvider = Depends(get_key_provider),
 ):
-    before = fetch_row_as_dict(db, "invoices", _INVOICE_COLUMNS, invoice_id)
-    if before is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such invoice")
-    if before["status"] != "draft":
-        raise HTTPException(status.HTTP_409_CONFLICT, f"invoice has status {before['status']!r}, can only issue from draft")
-
-    cur = db.cursor()
-    cur.execute("SELECT display_name, contact_email_encrypted FROM clients WHERE id = %s", (str(before["client_id"]),))
-    client_display_name, _ = cur.fetchone()
-    cur.execute("SELECT title FROM contracts WHERE id = %s", (str(before["contract_id"]),))
-    contract_title = cur.fetchone()[0]
-    milestone_title = None
-    if before["milestone_id"] is not None:
-        cur.execute("SELECT title FROM milestones WHERE id = %s", (str(before["milestone_id"]),))
-        milestone_title = cur.fetchone()[0]
     del key_provider  # PDF only uses non-encrypted fields (names/titles), not contact details
 
-    pdf_bytes = generate_invoice_pdf(before, client_display_name, contract_title, milestone_title)
-    object_key = store_invoice_pdf(str(invoice_id), pdf_bytes)
-
+    cur = db.cursor()
+    # FOR UPDATE: without this, two concurrent issue requests for the same
+    # draft invoice could both read status='draft' before either commits,
+    # both pass the status check below, and both post a ledger entry for
+    # the same invoice -- there's no unique constraint on
+    # (reference_type, reference_id) to catch that after the fact. Locking
+    # the row serializes concurrent attempts, matching the pattern already
+    # used for the invoice-number counter and the ledger chain tip.
     cur.execute(
-        "UPDATE invoices SET status = 'issued', issued_at = now(), pdf_object_key = %s WHERE id = %s",
-        (object_key, str(invoice_id)),
+        f"SELECT {', '.join(_INVOICE_COLUMNS)} FROM invoices WHERE id = %s FOR UPDATE",
+        (str(invoice_id),),
     )
+    row = cur.fetchone()
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such invoice")
+    before = dict(zip(_INVOICE_COLUMNS, row))
+    if before["status"] != "draft":
+        raise HTTPException(status.HTTP_409_CONFLICT, f"invoice has status {before['status']!r}, can only issue from draft")
 
     ledger_entries = [
         {"account_code": "1000", "direction": "debit", "amount": before["total_amount"], "currency_code": before["currency_code"]},
@@ -607,7 +613,35 @@ def issue_invoice(
     except ValueError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
 
-    after = fetch_row_as_dict(db, "invoices", _INVOICE_COLUMNS, invoice_id)
+    # Ledger posting succeeds before either the invoice row or the PDF are
+    # touched: if it had raised, get_db()'s rollback would undo the DB
+    # side, but a PDF already written to disk would not be undone by that
+    # rollback -- so nothing writes to disk until this point.
+    issued_at = datetime.now(timezone.utc)
+    after = {**before, "status": "issued", "issued_at": issued_at}
+
+    cur.execute("SELECT display_name FROM clients WHERE id = %s", (str(before["client_id"]),))
+    client_display_name = cur.fetchone()[0]
+    cur.execute("SELECT title FROM contracts WHERE id = %s", (str(before["contract_id"]),))
+    contract_title = cur.fetchone()[0]
+    milestone_title = None
+    if before["milestone_id"] is not None:
+        cur.execute("SELECT title FROM milestones WHERE id = %s", (str(before["milestone_id"]),))
+        milestone_title = cur.fetchone()[0]
+
+    # Built from `after`, not `before`, so the PDF reflects the invoice's
+    # real post-issuance state (status=issued, the actual issued_at) --
+    # generating it from the pre-update snapshot would have permanently
+    # stamped every issued invoice's PDF as "DRAFT -- not yet issued".
+    pdf_bytes = generate_invoice_pdf(after, client_display_name, contract_title, milestone_title)
+    object_key = store_invoice_pdf(str(invoice_id), pdf_bytes)
+
+    apply_partial_update(
+        db, "invoices", invoice_id,
+        {"status": "issued", "issued_at": issued_at, "pdf_object_key": object_key},
+        user.user_id,
+    )
+
     record_audit_event(
         db, actor_user_id=user.user_id, actor_roles=user.roles,
         action="ISSUE", entity_type="invoice", entity_id=str(invoice_id),
@@ -622,15 +656,20 @@ def void_invoice(
     user: AuthenticatedUser = Depends(require_role("owner_admin", "bookkeeper")),
     db=Depends(get_db),
 ):
-    before = fetch_row_as_dict(db, "invoices", _INVOICE_COLUMNS, invoice_id)
-    if before is None:
+    cur = db.cursor()
+    cur.execute(
+        f"SELECT {', '.join(_INVOICE_COLUMNS)} FROM invoices WHERE id = %s FOR UPDATE",
+        (str(invoice_id),),
+    )
+    row = cur.fetchone()
+    if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such invoice")
+    before = dict(zip(_INVOICE_COLUMNS, row))
     if before["status"] not in ("draft", "issued"):
         raise HTTPException(status.HTTP_409_CONFLICT, f"invoice has status {before['status']!r}, cannot void")
 
-    cur = db.cursor()
-    cur.execute("UPDATE invoices SET status = 'void' WHERE id = %s", (str(invoice_id),))
-    after = fetch_row_as_dict(db, "invoices", _INVOICE_COLUMNS, invoice_id)
+    apply_partial_update(db, "invoices", invoice_id, {"status": "void"}, user.user_id)
+    after = {**before, "status": "void"}
 
     record_audit_event(
         db, actor_user_id=user.user_id, actor_roles=user.roles,
@@ -672,13 +711,39 @@ def create_receipt(
 
     invoice_before = None
     if payload.invoice_id is not None:
-        invoice_before = fetch_row_as_dict(db, "invoices", _INVOICE_COLUMNS, payload.invoice_id)
-        if invoice_before is None:
+        cur = db.cursor()
+        # FOR UPDATE: locks the invoice for the rest of this transaction so
+        # two concurrent receipts against the same invoice can't both read
+        # status='issued' and both mark it paid / both post a settling
+        # ledger entry.
+        cur.execute(
+            f"SELECT {', '.join(_INVOICE_COLUMNS)} FROM invoices WHERE id = %s FOR UPDATE",
+            (str(payload.invoice_id),),
+        )
+        row = cur.fetchone()
+        if row is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "no such invoice")
+        invoice_before = dict(zip(_INVOICE_COLUMNS, row))
         if invoice_before["status"] != "issued":
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
                 f"invoice has status {invoice_before['status']!r}, can only record a receipt against an issued invoice",
+            )
+        # There's no partial-payment/balance tracking yet (no
+        # amount_paid column on invoices) -- a receipt against an invoice
+        # always marks it fully paid, so it must actually match the
+        # invoice's currency and total, or a trivial/mismatched-currency
+        # receipt would silently mark a mostly-unpaid invoice as paid.
+        if payload.currency_code != invoice_before["currency_code"]:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"receipt currency {payload.currency_code!r} does not match invoice currency {invoice_before['currency_code']!r}",
+            )
+        if payload.amount != invoice_before["total_amount"]:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"receipt amount {payload.amount} does not match invoice total {invoice_before['total_amount']} "
+                "-- partial payments are not yet supported",
             )
 
     try:
@@ -698,12 +763,11 @@ def create_receipt(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
 
     if payload.invoice_id is not None:
-        cur = db.cursor()
-        cur.execute("UPDATE invoices SET status = 'paid' WHERE id = %s", (payload.invoice_id,))
-        invoice_after = fetch_row_as_dict(db, "invoices", _INVOICE_COLUMNS, payload.invoice_id)
+        apply_partial_update(db, "invoices", payload.invoice_id, {"status": "paid"}, user.user_id)
+        invoice_after = {**invoice_before, "status": "paid"}
         record_audit_event(
             db, actor_user_id=user.user_id, actor_roles=user.roles,
-            action="MARK_PAID", entity_type="invoice", entity_id=payload.invoice_id,
+            action="MARK_PAID", entity_type="invoice", entity_id=str(payload.invoice_id),
             before_state=invoice_before, after_state=invoice_after,
         )
 
@@ -712,7 +776,8 @@ def create_receipt(
         action="CREATE", entity_type="receipt", entity_id=transaction_id,
         before_state=None,
         after_state={
-            "client_id": payload.client_id, "invoice_id": payload.invoice_id,
+            "client_id": str(payload.client_id),
+            "invoice_id": str(payload.invoice_id) if payload.invoice_id is not None else None,
             "amount": payload.amount, "currency_code": payload.currency_code,
         },
     )

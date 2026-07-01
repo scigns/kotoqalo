@@ -169,3 +169,21 @@ def make_token(private_key, subject: str) -> str:
         algorithm="RS256",
         headers={"kid": TEST_KID},
     )
+
+
+def create_user_with_role(db, rsa_keypair, role: str, subject: str) -> tuple[str, str]:
+    """Inserts a user, grants them `role`, and mints a token for them --
+    shared by every test module that needs an authenticated API user,
+    rather than each redefining its own near-identical `_owner`/
+    `_owner_token`/`_auditor_token` helper (they used to, with drifting
+    names and return shapes across test_invoices.py,
+    test_receipts_expenses.py, and test_contracts_milestones.py)."""
+    private_key, _ = rsa_keypair
+    cur = db.cursor()
+    cur.execute(
+        "INSERT INTO users (external_auth_subject, email, full_name) VALUES (%s, %s, 'Test User') RETURNING id",
+        (subject, f"{subject.replace('|', '-')}@example.test"),
+    )
+    user_id = cur.fetchone()[0]
+    cur.execute("INSERT INTO user_roles (user_id, role, granted_by) VALUES (%s, %s, %s)", (user_id, role, user_id))
+    return str(user_id), make_token(private_key, subject)
