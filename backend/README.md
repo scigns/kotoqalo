@@ -1,7 +1,8 @@
 # Dreamers-Media Pacific — Financial Backend
 
-Phase 1: PostgreSQL schema and migrations. The FastAPI application layer
-is added in later phases.
+Phase 1: PostgreSQL schema and migrations. Phase 2: Auth0-backed
+authentication and RBAC enforced at the API layer. Later phases add the
+core financial application logic and integrations.
 
 ## Local setup
 
@@ -78,3 +79,38 @@ have no supported cleanup path by design.
 
 See `alembic/versions/` for the full DDL; each migration's docstring/SQL
 comments explain the reasoning inline.
+
+## Auth and RBAC (Phase 2)
+
+`app/auth.py` verifies bearer JWTs issued by Auth0: it fetches
+`https://{AUTH0_DOMAIN}/.well-known/jwks.json`, checks the RS256
+signature against the key named by the token's `kid`, and checks
+`aud`/`iss`. The verified token's `sub` claim is looked up against
+`users.external_auth_subject` — a token with no matching, active local
+`users` row is rejected (403) even if the signature is genuinely valid;
+provisioning a `users` row is a separate, deliberate step (not built yet
+— there's no self-service signup endpoint, since every user of this
+system is added by the owner).
+
+`app/rbac.py`'s `require_role(*roles)` FastAPI dependency 403s unless the
+caller holds one of the given roles in `user_roles` (non-revoked only).
+The app always connects to Postgres as `app_rw` regardless of which
+human role made the request — RBAC for the three business roles
+(`owner_admin`/`bookkeeper`/`read_only_auditor`) is enforced at the API
+layer per Phase 2's requirement, not by switching the DB connection's
+role per request. The `app_rw`/`app_ro` DB-level split from Phase 1 is a
+separate defense layer (protects the ledger/audit log if the
+application itself is compromised), not a stand-in for human RBAC.
+
+`app/main.py` currently exposes only the minimal surface needed to prove
+the RBAC boundary (`POST /clients` for owner_admin/bookkeeper,
+`POST`/`DELETE /admin/users/{id}/roles` for owner_admin only) — full
+contract/invoice CRUD and audit-logging middleware are Phase 3.
+
+**Not yet wired to a real tenant.** `AUTH0_DOMAIN`/`AUTH0_AUDIENCE` in
+`.env.example` are placeholders; `tests/test_rbac.py` proves the
+verification and RBAC logic entirely locally, signing test tokens with a
+throwaway RSA keypair and substituting `StaticJWKSClient` for the real
+JWKS fetch (see `app/auth.py`) — no live Auth0 credentials are required
+to run the test suite. Swapping in a real tenant only requires setting
+the two env vars; no code changes.
