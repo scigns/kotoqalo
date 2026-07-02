@@ -16,7 +16,7 @@ from app.crud_helpers import apply_partial_update, fetch_row_as_dict, require_ex
 from app.crypto import KeyProvider, decrypt_field, encrypt_field, get_key_provider
 from app.db import get_db
 from app.invoicing import allocate_invoice_number
-from app.ledger import post_ledger_transaction
+from app.ledger import find_ledger_transaction_id, post_ledger_transaction, reverse_ledger_transaction
 from app.pdf import generate_invoice_pdf, read_invoice_pdf, store_invoice_pdf
 from app.rbac import require_role
 from app.schemas import (
@@ -665,8 +665,37 @@ def void_invoice(
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such invoice")
     before = dict(zip(_INVOICE_COLUMNS, row))
+    # A paid invoice cannot be voided through this endpoint at all (below)
+    # -- reversing a receipt that's already settled the invoice is a
+    # distinct operation (a refund) that this phase doesn't implement, so
+    # disallowing it here is deliberate, not an oversight.
     if before["status"] not in ("draft", "issued"):
         raise HTTPException(status.HTTP_409_CONFLICT, f"invoice has status {before['status']!r}, cannot void")
+
+    if before["status"] == "issued":
+        # Voiding an issued invoice must leave the ledger balanced. The
+        # append-only design forbids editing or deleting the original
+        # issuance entries, so this posts a reversal through the same
+        # chain-tip path instead (post_ledger_transaction, via
+        # reverse_ledger_transaction) rather than a direct row edit.
+        original_transaction_id = find_ledger_transaction_id(db, "invoice_issued", invoice_id)
+        if original_transaction_id is None:
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "issued invoice has no ledger posting to reverse -- data integrity issue",
+            )
+        try:
+            reverse_ledger_transaction(
+                db,
+                actor_user_id=user.user_id,
+                transaction_date=date_type.today(),
+                description=f"Invoice {before['invoice_number']} voided",
+                reference_type="invoice_voided",
+                reference_id=str(invoice_id),
+                original_transaction_id=original_transaction_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
 
     apply_partial_update(db, "invoices", invoice_id, {"status": "void"}, user.user_id)
     after = {**before, "status": "void"}

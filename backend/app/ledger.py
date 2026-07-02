@@ -97,3 +97,77 @@ def post_ledger_transaction(
         )
 
     return str(transaction_id)
+
+
+def find_ledger_transaction_id(db, reference_type: str, reference_id) -> Optional[str]:
+    """Looks up a previously-posted transaction by (reference_type,
+    reference_id) -- e.g. so a void can find the original invoice_issued
+    posting it needs to reverse.
+
+    `reference_id` is explicitly converted to str here regardless of
+    whether the caller passed a str or a uuid.UUID: both compare
+    correctly against the underlying uuid column either way (Postgres
+    resolves an untyped parameter's type from the comparison context, and
+    reference_id is written the same way by different callers -- some
+    pass str(invoice_id), create_receipt passes the uuid.UUID payload
+    field directly), but converting explicitly here removes any doubt
+    rather than depending on that inference every time this is called."""
+    cur = db.cursor()
+    cur.execute(
+        "SELECT id FROM ledger_transactions WHERE reference_type = %s AND reference_id = %s",
+        (reference_type, str(reference_id)),
+    )
+    row = cur.fetchone()
+    return str(row[0]) if row is not None else None
+
+
+def reverse_ledger_transaction(
+    db,
+    actor_user_id: str,
+    transaction_date,
+    description: str,
+    reference_type: str,
+    reference_id: Optional[str],
+    original_transaction_id: str,
+) -> str:
+    """Posts a balanced reversal of `original_transaction_id`: every one
+    of its entries, with direction flipped and the same account/currency/
+    amount. Since the original entries already balance (debits == credits
+    per currency), flipping every entry's direction negates both sides
+    equally, so the reversal balances too -- posted through the same
+    chain-tip path as any other transaction (post_ledger_transaction),
+    never by editing or deleting the original rows, which the append-only
+    design forbids anyway."""
+    cur = db.cursor()
+    cur.execute(
+        """
+        SELECT a.code, e.direction, e.amount, e.currency_code
+        FROM ledger_entries e
+        JOIN chart_of_accounts a ON a.id = e.account_id
+        WHERE e.ledger_transaction_id = %s
+        """,
+        (original_transaction_id,),
+    )
+    original_entries = cur.fetchall()
+    if not original_entries:
+        raise ValueError(f"no ledger entries found for transaction {original_transaction_id!r} to reverse")
+
+    reversal_entries: list[LedgerEntryInput] = [
+        {
+            "account_code": code,
+            "direction": "credit" if direction == "debit" else "debit",
+            "amount": amount,
+            "currency_code": currency_code,
+        }
+        for code, direction, amount, currency_code in original_entries
+    ]
+    return post_ledger_transaction(
+        db,
+        actor_user_id=actor_user_id,
+        transaction_date=transaction_date,
+        description=description,
+        reference_type=reference_type,
+        reference_id=reference_id,
+        entries=reversal_entries,
+        reversal_of_transaction_id=original_transaction_id,
+    )
