@@ -166,7 +166,10 @@ def test_receipt_with_malformed_client_id_is_422_not_500(client, db, rsa_keypair
 
 def test_receipt_without_invoice_link_still_posts_ledger(client, db, rsa_keypair):
     """A receipt need not be tied to an invoice (e.g. a deposit or
-    unrelated payment)."""
+    unrelated payment) -- reference_id is NULL for this posting
+    (post_ledger_transaction is called with reference_id=payload.invoice_id,
+    which is None here), and that must not crash the insert or produce an
+    unbalanced posting."""
     _, token = _owner(db, rsa_keypair)
     client_id = client.post(
         "/clients", json={"display_name": "Deposit Client", "country_code": "AU"},
@@ -182,6 +185,30 @@ def test_receipt_without_invoice_link_still_posts_ledger(client, db, rsa_keypair
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
+    transaction_id = response.json()["ledger_transaction_id"]
+
+    cur = db.cursor()
+    cur.execute(
+        "SELECT reference_type, reference_id FROM ledger_transactions WHERE id = %s",
+        (transaction_id,),
+    )
+    reference_type, reference_id = cur.fetchone()
+    assert reference_type == "receipt"
+    assert reference_id is None
+
+    cur.execute(
+        """
+        SELECT a.code, e.direction, e.amount
+        FROM ledger_entries e
+        JOIN chart_of_accounts a ON a.id = e.account_id
+        WHERE e.ledger_transaction_id = %s
+        ORDER BY a.code
+        """,
+        (transaction_id,),
+    )
+    postings = {(row[0], row[1]): str(row[2]) for row in cur.fetchall()}
+    assert postings[("1010", "debit")] == "250.0000"
+    assert postings[("1000", "credit")] == "250.0000"
 
 
 def test_expense_posts_ledger_debit_expense_credit_cash(client, db, rsa_keypair):
