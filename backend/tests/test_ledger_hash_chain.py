@@ -11,8 +11,6 @@ import uuid
 
 import psycopg
 
-GENESIS_HASH = hashlib.sha256(b"dreamers-media-pacific-ledger-genesis").digest()
-
 
 def _expected_row_hash(previous_hash, entry_id, ledger_transaction_id, account_id, currency_code, direction, amount, created_by, created_at):
     """Mirrors chain_ledger_entry_hash()'s current formula: every real
@@ -89,15 +87,29 @@ def _insert_entry(db, user_id, transaction_id, account_id, direction, amount, cu
     }
 
 
-def test_first_entry_in_an_empty_ledger_chains_from_genesis(db, seed):
-    db.cursor().execute("SET ROLE app_rw")
+def test_entry_chains_from_the_current_tip(db, seed):
+    """Doesn't assume the ledger is empty -- test_ledger_atomicity.py
+    deliberately leaves a real, permanently-committed entry behind (see
+    its own docstring), so GENESIS_HASH is only ever the tip's value on
+    a genuinely fresh database. Capturing the tip immediately before
+    inserting and asserting the new entry chains from *that* value tests
+    the same invariant (chains from whatever the tip currently is)
+    without depending on run order or a pristine database."""
     uid = seed["user_id"]
+    # Peeked before SET ROLE app_rw: app_rw has no grants at all on
+    # ledger_chain_tip (deliberately, per 0011's own comments), so this
+    # read has to happen as the owning role.
+    peek_cur = db.cursor()
+    peek_cur.execute("SELECT last_hash FROM ledger_chain_tip WHERE id = 1")
+    tip_before = bytes(peek_cur.fetchone()[0])
+
+    db.cursor().execute("SET ROLE app_rw")
     txn_id = _insert_ledger_transaction(db, uid, "Invoice #1 issued")
     entry = _insert_entry(db, uid, txn_id, seed["ar_account_id"], "debit", "100.00")
 
-    assert entry["previous_hash"] == GENESIS_HASH
+    assert entry["previous_hash"] == tip_before
     assert entry["row_hash"] == _expected_row_hash(
-        GENESIS_HASH,
+        tip_before,
         entry["id"],
         txn_id,
         seed["ar_account_id"],
@@ -110,8 +122,12 @@ def test_first_entry_in_an_empty_ledger_chains_from_genesis(db, seed):
 
 
 def test_chain_links_consecutive_entries_and_is_independently_verifiable(db, seed):
-    db.cursor().execute("SET ROLE app_rw")
     uid = seed["user_id"]
+    peek_cur = db.cursor()
+    peek_cur.execute("SELECT last_hash FROM ledger_chain_tip WHERE id = 1")
+    tip_before = bytes(peek_cur.fetchone()[0])
+
+    db.cursor().execute("SET ROLE app_rw")
     txn_id = _insert_ledger_transaction(db, uid, "Invoice #2 issued")
 
     first = _insert_entry(db, uid, txn_id, seed["ar_account_id"], "debit", "50.00")
@@ -127,7 +143,7 @@ def test_chain_links_consecutive_entries_and_is_independently_verifiable(db, see
     # exactly what's stored -- this is what a tamper check would do
     # against an export of the table.
     expected_first = _expected_row_hash(
-        GENESIS_HASH,
+        tip_before,
         first["id"],
         txn_id,
         seed["ar_account_id"],

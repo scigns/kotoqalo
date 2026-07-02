@@ -5,60 +5,21 @@ grants/revocations), even though bookkeeper can write elsewhere.
 Tokens are signed locally with a throwaway RSA keypair standing in for
 Auth0's JWKS -- app/auth.py's real verification path (kid lookup,
 signature check, audience/issuer check) runs unmodified via
-StaticJWKSClient, only the *source* of signing keys is swapped.
+StaticJWKSClient, only the *source* of signing keys is swapped. The
+`client`/`rsa_keypair` fixtures and `make_token`/TEST_* constants live in
+conftest.py so other API-level test files (e.g. test_client_encryption.py)
+share the same setup instead of each redefining it.
 """
 
 import time
 import uuid
 
 import jwt
-import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
-from fastapi.testclient import TestClient
 
-from app.auth import JWKSUnavailableError, StaticJWKSClient, get_jwks_client
-from app.config import Settings, get_settings
-from app.db import get_db
+from app.auth import JWKSUnavailableError, get_jwks_client
 from app.main import app
-
-TEST_KID = "test-key-1"
-TEST_AUDIENCE = "https://dreamers-media-pacific-api.test"
-TEST_DOMAIN = "dreamers-media-pacific.test.auth0.com"
-
-
-@pytest.fixture(scope="module")
-def rsa_keypair():
-    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    return private_key, private_key.public_key()
-
-
-@pytest.fixture
-def client(db, rsa_keypair):
-    _, public_key = rsa_keypair
-    db.cursor().execute("SET ROLE app_rw")  # matches how the real app always connects
-
-    def _get_db_override():
-        yield db
-
-    app.dependency_overrides[get_db] = _get_db_override
-    app.dependency_overrides[get_settings] = lambda: Settings(
-        app_database_url="unused-in-tests", auth0_domain=TEST_DOMAIN, auth0_audience=TEST_AUDIENCE
-    )
-    app.dependency_overrides[get_jwks_client] = lambda: StaticJWKSClient({TEST_KID: public_key})
-
-    try:
-        yield TestClient(app)
-    finally:
-        app.dependency_overrides.clear()
-
-
-def _make_token(private_key, subject: str) -> str:
-    return jwt.encode(
-        {"sub": subject, "aud": TEST_AUDIENCE, "iss": f"https://{TEST_DOMAIN}/"},
-        private_key,
-        algorithm="RS256",
-        headers={"kid": TEST_KID},
-    )
+from conftest import TEST_AUDIENCE, TEST_DOMAIN, TEST_KID, make_token
 
 
 def _create_user_with_roles(db, *roles: str):
@@ -89,7 +50,7 @@ def test_unauthenticated_request_is_rejected(client):
 def test_bookkeeper_can_create_client(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, subject = _create_user_with_roles(db, "bookkeeper")
-    token = _make_token(private_key, subject)
+    token = make_token(private_key, subject)
 
     response = client.post(
         "/clients",
@@ -102,7 +63,7 @@ def test_bookkeeper_can_create_client(client, db, rsa_keypair):
 def test_read_only_auditor_cannot_create_client(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, subject = _create_user_with_roles(db, "read_only_auditor")
-    token = _make_token(private_key, subject)
+    token = make_token(private_key, subject)
 
     response = client.post(
         "/clients",
@@ -115,7 +76,7 @@ def test_read_only_auditor_cannot_create_client(client, db, rsa_keypair):
 def test_read_only_auditor_can_read_own_identity(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, subject = _create_user_with_roles(db, "read_only_auditor")
-    token = _make_token(private_key, subject)
+    token = make_token(private_key, subject)
 
     response = client.get("/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
@@ -126,7 +87,7 @@ def test_bookkeeper_cannot_grant_roles(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, bookkeeper_subject = _create_user_with_roles(db, "bookkeeper")
     target_id, _ = _create_user_with_roles(db)
-    token = _make_token(private_key, bookkeeper_subject)
+    token = make_token(private_key, bookkeeper_subject)
 
     response = client.post(
         f"/admin/users/{target_id}/roles",
@@ -140,7 +101,7 @@ def test_bookkeeper_cannot_revoke_roles(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, bookkeeper_subject = _create_user_with_roles(db, "bookkeeper")
     target_id, _ = _create_user_with_roles(db, "read_only_auditor")
-    token = _make_token(private_key, bookkeeper_subject)
+    token = make_token(private_key, bookkeeper_subject)
 
     response = client.delete(
         f"/admin/users/{target_id}/roles/read_only_auditor",
@@ -153,7 +114,7 @@ def test_read_only_auditor_cannot_grant_roles(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, auditor_subject = _create_user_with_roles(db, "read_only_auditor")
     target_id, _ = _create_user_with_roles(db)
-    token = _make_token(private_key, auditor_subject)
+    token = make_token(private_key, auditor_subject)
 
     response = client.post(
         f"/admin/users/{target_id}/roles",
@@ -167,7 +128,7 @@ def test_read_only_auditor_cannot_revoke_roles(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, auditor_subject = _create_user_with_roles(db, "read_only_auditor")
     target_id, _ = _create_user_with_roles(db, "bookkeeper")
-    token = _make_token(private_key, auditor_subject)
+    token = make_token(private_key, auditor_subject)
 
     response = client.delete(
         f"/admin/users/{target_id}/roles/bookkeeper",
@@ -180,7 +141,7 @@ def test_owner_admin_can_grant_and_revoke_roles(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, owner_subject = _create_user_with_roles(db, "owner_admin")
     target_id, _ = _create_user_with_roles(db)
-    token = _make_token(private_key, owner_subject)
+    token = make_token(private_key, owner_subject)
 
     grant_response = client.post(
         f"/admin/users/{target_id}/roles",
@@ -206,7 +167,7 @@ def test_owner_admin_can_grant_and_revoke_roles(client, db, rsa_keypair):
 def test_grant_role_rejects_malformed_user_id_with_422_not_500(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, owner_subject = _create_user_with_roles(db, "owner_admin")
-    token = _make_token(private_key, owner_subject)
+    token = make_token(private_key, owner_subject)
 
     response = client.post(
         "/admin/users/not-a-uuid/roles",
@@ -220,7 +181,7 @@ def test_revoke_role_rejects_invalid_role_name_with_422_not_500(client, db, rsa_
     private_key, _ = rsa_keypair
     _, owner_subject = _create_user_with_roles(db, "owner_admin")
     target_id, _ = _create_user_with_roles(db)
-    token = _make_token(private_key, owner_subject)
+    token = make_token(private_key, owner_subject)
 
     response = client.delete(
         f"/admin/users/{target_id}/roles/not-a-real-role",
@@ -232,7 +193,7 @@ def test_revoke_role_rejects_invalid_role_name_with_422_not_500(client, db, rsa_
 def test_grant_role_for_nonexistent_user_is_404_not_500(client, db, rsa_keypair):
     private_key, _ = rsa_keypair
     _, owner_subject = _create_user_with_roles(db, "owner_admin")
-    token = _make_token(private_key, owner_subject)
+    token = make_token(private_key, owner_subject)
 
     response = client.post(
         f"/admin/users/{uuid.uuid4()}/roles",
@@ -244,7 +205,7 @@ def test_grant_role_for_nonexistent_user_is_404_not_500(client, db, rsa_keypair)
 
 def test_token_for_unknown_local_account_is_rejected(client, rsa_keypair):
     private_key, _ = rsa_keypair
-    token = _make_token(private_key, "test|no-such-user")
+    token = make_token(private_key, "test|no-such-user")
 
     response = client.get("/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 403
@@ -321,6 +282,6 @@ def test_jwks_outage_is_503_not_500(client, rsa_keypair):
     private_key, _ = rsa_keypair
     app.dependency_overrides[get_jwks_client] = lambda: _BrokenJWKSClient()
 
-    token = _make_token(private_key, "test|whoever")
+    token = make_token(private_key, "test|whoever")
     response = client.get("/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 503
